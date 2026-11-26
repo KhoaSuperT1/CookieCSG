@@ -24,10 +24,10 @@
 
 | Weapon | Category | Highlighted Animation Clips | Preview |
 | :--- | :---: | :--- | :---: |
-| **Tactical Axe** | `AXE` | Deploy, Combo Slash, Heavy Cleave, Inspect | ![Tactical Axe](docs/media/tactical_axe.gif) |
-| **Dark Star** | `KNIFE` | Deploy, Dual-Blade Slash, Backstab, Inspect | ![Dark Star](docs/media/dark_star.gif) |
-| **Balisong** | `KNIFE` | Deploy, Quick Slash, Flip Inspect | ![Balisong](docs/media/balisong.gif) |
-| **AK-47** | `RIFLE` | Deploy, Full-Auto Fire, Tactical Reload, Inspect | ![AK-47](docs/media/ak47.gif) |
+| **Tactical Axe** | `AXE` | Slash 1, Slash 2, Heavy Cleave, Inspect | ![Tactical Axe](docs/media/tactical_axe.gif) |
+| **Dark Star** | `KNIFE` | Slash 1, Slash 2, Heavy Backstab, Inspect | ![Dark Star](docs/media/dark_star.gif) |
+| **Balisong** | `KNIFE` | Slash 1, Slash 2, Heavy Attack, Inspect | ![Balisong](docs/media/balisong.gif) |
+| **AK-47** | `RIFLE` | Fire, ADS (Zoom & ADS Fire), Reload, Inspect | ![AK-47](docs/media/ak47.gif) |
 
 ---
 
