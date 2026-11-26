@@ -1,0 +1,4 @@
+gun-controls:
+  right-click-fire: false
+  hold-to-ads: true
+  hold-ads-release-ms: 350

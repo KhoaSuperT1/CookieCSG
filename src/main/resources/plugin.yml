@@ -1,0 +1,18 @@
+name: CookieCSG
+version: '1.0'
+main: com.cookie.csg.CookieCSGPlugin
+api-version: '1.21'
+author: Java-Cookieee
+description: Tactical FPS-Style Weapons, Animations, Universal ADS and In-Game GUI Editor
+commands:
+  csg:
+    description: Main command for CookieCSG
+    aliases: [cookiecsg, gun, guns]
+    permission: cookiecsg.use
+permissions:
+  cookiecsg.use:
+    description: Allows using basic CSG commands
+    default: true
+  cookiecsg.admin:
+    description: Allows using CSG editor and admin commands
+    default: op
