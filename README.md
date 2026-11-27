@@ -26,6 +26,19 @@
 
 ## Weapon Animation Showcase
 
+### Included Default Vanilla LOD Models (Bundled in `CookieCSG-1.2.jar`)
+
+> **Included in Plugin:** Both **Colt M1911 (`p1911`)** and **Bayonet (`bayonet`)** below (arm-free Vanilla LOD 3D models, animations, sounds, 2D hotbar icons, and YAML configs under [Default/CookieCSG](Default/CookieCSG) and [Default/ItemsAdder](Default/ItemsAdder)) are **bundled directly inside `CookieCSG-1.2.jar`** and auto-extracted on first boot.
+
+| Weapon | Mode | Category | Included Clips & Assets | Preview |
+| :--- | :---: | :---: | :--- | :---: |
+| **Colt M1911 (`p1911`)** | `model` | `PISTOL` | Deploy, Fire, ADS Zoom & Fire, Reload, Inspect + Hotbar Icon | ![Colt M1911](docs/media/p1911.gif) |
+| **Bayonet (`bayonet`)** | `model` | `KNIFE` | Deploy, Slash 1, Slash 2, Heavy Backstab, Inspect + Hotbar Icon | ![Bayonet](docs/media/bayonet.gif) |
+
+### Optional Add-On 3D Weapon Packs (Not Bundled in Plugin JAR)
+
+> **Optional Add-On Packs:** The high-detail showcase weapons below are **external add-on 3D packs** and are **not** bundled inside `CookieCSG-1.2.jar`.
+
 | Weapon | Category | Highlighted Animation Clips | Preview |
 | :--- | :---: | :--- | :---: |
 | **Tactical Axe** | `AXE` | Slash 1, Slash 2, Heavy Cleave, Inspect | ![Tactical Axe](docs/media/tactical_axe.gif) |
