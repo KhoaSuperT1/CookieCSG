@@ -4,6 +4,7 @@ import com.cookie.csg.manager.WeaponManager;
 import com.cookie.csg.model.FireMode;
 import com.cookie.csg.model.WeaponDefinition;
 import org.bukkit.util.Vector;
+import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.Test;
 
 import java.io.File;
@@ -133,6 +134,7 @@ public class EngineCombatTest {
 
     @Test
     public void testAllThreePacksFireModesCappedAtTwoAndNoBurst() {
+        Assumptions.assumeTrue(new File("CookieCSG_DONE").isDirectory(), "CookieCSG_DONE external packs not present");
         for (String packName : List.of("Pack 1", "Pack 2", "Pack 3")) {
             File folder = new File("CookieCSG_DONE/" + packName + "/CookieCSG/weapons");
             assertTrue(folder.exists(), "Missing pack weapons folder: " + folder);

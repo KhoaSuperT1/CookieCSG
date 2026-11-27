@@ -2,6 +2,8 @@ package com.cookie.csg.command;
 
 import com.cookie.csg.CookieCSGPlugin;
 import com.cookie.csg.model.WeaponDefinition;
+import com.cookie.csg.model.WeaponMode;
+import com.cookie.csg.model.WeaponType;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
@@ -15,6 +17,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
 
 public class CSGCommand implements CommandExecutor, TabCompleter {
 
@@ -43,6 +46,39 @@ public class CSGCommand implements CommandExecutor, TabCompleter {
                     return true;
                 }
                 plugin.getGuiManager().openMainMenu(player);
+                return true;
+            }
+            case "create" -> {
+                if (args.length < 2) {
+                    sender.sendMessage(ChatColor.RED + "Usage: /csg create <weapon_id> [type] [default|model]");
+                    return true;
+                }
+                String cleanId = args[1].toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9_]", "");
+                if (cleanId.isBlank()) {
+                    sender.sendMessage(ChatColor.RED + "Invalid weapon id.");
+                    return true;
+                }
+                if (plugin.getWeaponManager().getWeapons().containsKey(cleanId)) {
+                    sender.sendMessage(ChatColor.RED + "Weapon already exists: " + cleanId);
+                    return true;
+                }
+                WeaponType type = WeaponType.RIFLE;
+                if (args.length >= 3) {
+                    try {
+                        type = WeaponType.valueOf(args[2].toUpperCase(Locale.ROOT));
+                    } catch (IllegalArgumentException ex) {
+                        sender.sendMessage(ChatColor.RED + "Unknown weapon type: " + args[2]);
+                        return true;
+                    }
+                }
+                WeaponMode mode = args.length >= 4
+                    ? WeaponMode.fromString(args[3], WeaponMode.DEFAULT)
+                    : WeaponMode.DEFAULT;
+                WeaponDefinition created = plugin.getWeaponManager().createWeapon(cleanId, type, mode);
+                sender.sendMessage(ChatColor.GREEN + "Created weapon " + cleanId + " (" + type.name() + ", mode: " + mode.getConfigValue() + ").");
+                if (sender instanceof Player player && created != null) {
+                    plugin.getGuiManager().openWeaponEditor(player, created);
+                }
                 return true;
             }
             case "edit" -> {
@@ -110,6 +146,7 @@ public class CSGCommand implements CommandExecutor, TabCompleter {
     private void sendHelp(CommandSender sender) {
         sender.sendMessage(ChatColor.GOLD + "=== CookieCSG Weapon System ===");
         sender.sendMessage(ChatColor.YELLOW + "/csg editor" + ChatColor.GRAY + " - Open In-Game GUI Editor");
+        sender.sendMessage(ChatColor.YELLOW + "/csg create <id> [type] [default|model]" + ChatColor.GRAY + " - Create new weapon");
         sender.sendMessage(ChatColor.YELLOW + "/csg edit <id>" + ChatColor.GRAY + " - Edit weapon directly in GUI");
         sender.sendMessage(ChatColor.YELLOW + "/csg give <player> <id>" + ChatColor.GRAY + " - Give weapon item");
         sender.sendMessage(ChatColor.YELLOW + "/csg list" + ChatColor.GRAY + " - List all weapons");
@@ -119,7 +156,7 @@ public class CSGCommand implements CommandExecutor, TabCompleter {
     @Override
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         if (args.length == 1) {
-            List<String> list = Arrays.asList("editor", "gui", "edit", "give", "list", "reload");
+            List<String> list = Arrays.asList("editor", "gui", "create", "edit", "give", "list", "reload");
             List<String> filtered = new ArrayList<>();
             for (String s : list) {
                 if (s.startsWith(args[0].toLowerCase())) {
@@ -145,6 +182,26 @@ public class CSGCommand implements CommandExecutor, TabCompleter {
         if (args.length == 3 && args[0].equalsIgnoreCase("give")) {
             return filterWeaponCompletions(args[2]);
         }
+        if (args.length == 3 && args[0].equalsIgnoreCase("create")) {
+            String pfx = args[2].toUpperCase(Locale.ROOT);
+            List<String> types = new ArrayList<>();
+            for (WeaponType t : WeaponType.values()) {
+                if (t.name().startsWith(pfx)) {
+                    types.add(t.name());
+                }
+            }
+            return types;
+        }
+        if (args.length == 4 && args[0].equalsIgnoreCase("create")) {
+            String pfx = args[3].toLowerCase(Locale.ROOT);
+            List<String> modes = new ArrayList<>();
+            for (String m : List.of("default", "model")) {
+                if (m.startsWith(pfx)) {
+                    modes.add(m);
+                }
+            }
+            return modes;
+        }
         return Collections.emptyList();
     }
 
@@ -157,6 +214,7 @@ public class CSGCommand implements CommandExecutor, TabCompleter {
         addAliasCompletion(candidates, "kar98", "kar98k");
         addAliasCompletion(candidates, "karambit_obsidian", "karambit");
         addAliasCompletion(candidates, "cobra_vanguard", "cobra");
+        addAliasCompletion(candidates, "p1911", "m1911");
         List<String> filtered = new ArrayList<>();
         for (String s : candidates) {
             if (s.toLowerCase().startsWith(lowerPrefix)) {

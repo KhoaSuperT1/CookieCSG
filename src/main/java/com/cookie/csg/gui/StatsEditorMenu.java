@@ -1,8 +1,11 @@
 package com.cookie.csg.gui;
 
 import com.cookie.csg.CookieCSGPlugin;
+import com.cookie.csg.model.FireMode;
 import com.cookie.csg.model.WeaponDefinition;
+import com.cookie.csg.model.WeaponRecoil;
 import com.cookie.csg.model.WeaponStats;
+import com.cookie.csg.model.WeaponType;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -15,6 +18,7 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
 import java.util.Arrays;
+import java.util.List;
 
 public class StatsEditorMenu implements InventoryHolder {
 
@@ -44,6 +48,12 @@ public class StatsEditorMenu implements InventoryHolder {
             stats = new WeaponStats();
             weapon.setStats(stats);
         }
+        WeaponRecoil recoil = weapon.getRecoil();
+        if (recoil == null) {
+            recoil = new WeaponRecoil();
+            weapon.setRecoil(recoil);
+        }
+        WeaponType type = weapon.getType() != null ? weapon.getType() : WeaponType.RIFLE;
 
         inventory.setItem(11, createItem(
             Material.IRON_SWORD,
@@ -72,6 +82,91 @@ public class StatsEditorMenu implements InventoryHolder {
             ChatColor.GRAY + "Left-Click: +1 tick | Right-Click: -1 tick",
             ChatColor.GRAY + "Shift Left-Click: +5 ticks | Shift Right-Click: -5 ticks"
         ));
+
+        inventory.setItem(19, createItem(
+            Material.CROSSBOW,
+            ChatColor.RED + "" + ChatColor.BOLD + "Recoil Vertical",
+            ChatColor.GRAY + "Vertical kick: " + ChatColor.WHITE + String.format("%.2f", recoil.getVertical()),
+            "",
+            ChatColor.GRAY + "Left-Click: +0.10 | Right-Click: -0.10",
+            ChatColor.GRAY + "Shift-Click: +/- 0.50"
+        ));
+
+        inventory.setItem(20, createItem(
+            Material.COMPARATOR,
+            ChatColor.GOLD + "" + ChatColor.BOLD + "Recoil Horizontal",
+            ChatColor.GRAY + "Horizontal sway: " + ChatColor.WHITE + String.format("%.2f", recoil.getHorizontal()),
+            "",
+            ChatColor.GRAY + "Left-Click: +0.05 | Right-Click: -0.05",
+            ChatColor.GRAY + "Shift-Click: +/- 0.25"
+        ));
+
+        inventory.setItem(21, createItem(
+            Material.SNOWBALL,
+            ChatColor.AQUA + "" + ChatColor.BOLD + "Hipfire Base Spread",
+            ChatColor.GRAY + "Spread radius: " + ChatColor.WHITE + String.format("%.3f", recoil.getSpread()),
+            "",
+            ChatColor.GRAY + "Left-Click: +0.005 | Right-Click: -0.005",
+            ChatColor.GRAY + "Shift-Click: +/- 0.020"
+        ));
+
+        inventory.setItem(22, createItem(
+            Material.RABBIT_FOOT,
+            ChatColor.YELLOW + "" + ChatColor.BOLD + "Sprint Spread Multiplier",
+            ChatColor.GRAY + "Multiplier: " + ChatColor.WHITE + String.format("%.2f", recoil.getSprintSpreadMultiplier()) + "x",
+            "",
+            ChatColor.GRAY + "Left-Click: +0.10 | Right-Click: -0.10",
+            ChatColor.GRAY + "Shift-Click: +/- 0.50"
+        ));
+
+        String modeText = type.isMelee()
+            ? "MELEE (Combo / Heavy)"
+            : stats.resolveSupportedFireModes(type) + " (Default: " + stats.resolveDefaultFireMode(type) + ")";
+        inventory.setItem(23, createItem(
+            Material.LEVER,
+            ChatColor.GREEN + "" + ChatColor.BOLD + "Fire Mode Preset",
+            ChatColor.GRAY + "Modes: " + ChatColor.WHITE + modeText,
+            "",
+            type.isMelee() ? ChatColor.DARK_GRAY + "Melee weapons use slash/heavy controls" : ChatColor.YELLOW + "Click to cycle fire mode preset"
+        ));
+
+        inventory.setItem(24, createItem(
+            Material.FEATHER,
+            ChatColor.WHITE + "" + ChatColor.BOLD + "Move Speed Multiplier",
+            ChatColor.GRAY + "Walk speed factor: " + ChatColor.WHITE + String.format("%.2f", stats.getMovementSpeedMultiplier()) + "x",
+            "",
+            ChatColor.GRAY + "Left-Click: +0.02 | Right-Click: -0.02",
+            ChatColor.GRAY + "Shift-Click: +/- 0.10"
+        ));
+
+        if (type == WeaponType.KNIFE) {
+            inventory.setItem(25, createItem(
+                Material.DIAMOND_SWORD,
+                ChatColor.GOLD + "" + ChatColor.BOLD + "Backstab Multiplier",
+                ChatColor.GRAY + "Backstab bonus: " + ChatColor.WHITE + String.format("%.2f", stats.getBackstabMultiplier()) + "x",
+                "",
+                ChatColor.GRAY + "Left-Click: +0.25 | Right-Click: -0.25",
+                ChatColor.GRAY + "Shift-Click: +/- 1.00"
+            ));
+        } else if (type == WeaponType.AXE) {
+            inventory.setItem(25, createItem(
+                Material.SHIELD,
+                ChatColor.GOLD + "" + ChatColor.BOLD + "Shield Break Chance",
+                ChatColor.GRAY + "Break chance: " + ChatColor.WHITE + String.format("%.0f%%", stats.getShieldBreakChance() * 100.0),
+                "",
+                ChatColor.GRAY + "Left-Click: +0.10 | Right-Click: -0.10",
+                ChatColor.GRAY + "Shift-Click: +/- 0.25"
+            ));
+        } else {
+            inventory.setItem(25, createItem(
+                Material.REPEATER,
+                ChatColor.LIGHT_PURPLE + "" + ChatColor.BOLD + "Tactical Reload Ticks",
+                ChatColor.GRAY + "Tactical duration: " + ChatColor.WHITE + stats.getReloadTacticalTicks() + " ticks",
+                "",
+                ChatColor.GRAY + "Left-Click: +1 tick | Right-Click: -1 tick",
+                ChatColor.GRAY + "Shift-Click: +/- 5 ticks"
+            ));
+        }
 
         inventory.setItem(29, createItem(
             Material.ARROW,
@@ -136,6 +231,12 @@ public class StatsEditorMenu implements InventoryHolder {
             stats = new WeaponStats();
             weapon.setStats(stats);
         }
+        WeaponRecoil recoil = weapon.getRecoil();
+        if (recoil == null) {
+            recoil = new WeaponRecoil();
+            weapon.setRecoil(recoil);
+        }
+        WeaponType type = weapon.getType() != null ? weapon.getType() : WeaponType.RIFLE;
 
         if (rawSlot == 11) {
             double delta = event.isShiftClick() ? 5.0 : 1.0;
@@ -159,6 +260,92 @@ public class StatsEditorMenu implements InventoryHolder {
             int delta = event.isShiftClick() ? 5 : 1;
             if (event.isRightClick()) delta = -delta;
             stats.setFireRateTicks(Math.max(1, stats.getFireRateTicks() + delta));
+            player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 1.0f, 1.0f);
+            render();
+            return;
+        }
+
+        if (rawSlot == 19) {
+            double delta = event.isShiftClick() ? 0.5 : 0.1;
+            if (event.isRightClick()) delta = -delta;
+            recoil.setVertical(Math.max(0.0, Math.round((recoil.getVertical() + delta) * 100.0) / 100.0));
+            player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 1.0f, 1.0f);
+            render();
+            return;
+        }
+
+        if (rawSlot == 20) {
+            double delta = event.isShiftClick() ? 0.25 : 0.05;
+            if (event.isRightClick()) delta = -delta;
+            recoil.setHorizontal(Math.max(0.0, Math.round((recoil.getHorizontal() + delta) * 100.0) / 100.0));
+            player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 1.0f, 1.0f);
+            render();
+            return;
+        }
+
+        if (rawSlot == 21) {
+            double delta = event.isShiftClick() ? 0.02 : 0.005;
+            if (event.isRightClick()) delta = -delta;
+            recoil.setSpread(Math.max(0.0, Math.min(1.0, Math.round((recoil.getSpread() + delta) * 1000.0) / 1000.0)));
+            player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 1.0f, 1.0f);
+            render();
+            return;
+        }
+
+        if (rawSlot == 22) {
+            double delta = event.isShiftClick() ? 0.5 : 0.1;
+            if (event.isRightClick()) delta = -delta;
+            recoil.setSprintSpreadMultiplier(Math.max(1.0, Math.round((recoil.getSprintSpreadMultiplier() + delta) * 100.0) / 100.0));
+            player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 1.0f, 1.0f);
+            render();
+            return;
+        }
+
+        if (rawSlot == 23) {
+            if (!type.isMelee()) {
+                List<List<FireMode>> presets = List.of(
+                    List.of(FireMode.AUTO, FireMode.SEMI_AUTO),
+                    List.of(FireMode.SEMI_AUTO),
+                    List.of(FireMode.AUTO),
+                    List.of(FireMode.SINGLE)
+                );
+                List<FireMode> cur = stats.resolveSupportedFireModes(type);
+                int idx = presets.indexOf(cur);
+                int nextIdx = event.isRightClick()
+                    ? (idx <= 0 ? presets.size() - 1 : idx - 1)
+                    : (idx + 1) % presets.size();
+                List<FireMode> nextModes = presets.get(nextIdx);
+                stats.setFireModes(nextModes);
+                stats.setDefaultFireMode(nextModes.get(0));
+                player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 1.0f, 1.2f);
+                render();
+            }
+            return;
+        }
+
+        if (rawSlot == 24) {
+            double delta = event.isShiftClick() ? 0.10 : 0.02;
+            if (event.isRightClick()) delta = -delta;
+            stats.setMovementSpeedMultiplier(Math.max(0.3, Math.min(1.5, Math.round((stats.getMovementSpeedMultiplier() + delta) * 100.0) / 100.0)));
+            player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 1.0f, 1.0f);
+            render();
+            return;
+        }
+
+        if (rawSlot == 25) {
+            if (type == WeaponType.KNIFE) {
+                double delta = event.isShiftClick() ? 1.0 : 0.25;
+                if (event.isRightClick()) delta = -delta;
+                stats.setBackstabMultiplier(Math.max(1.0, Math.round((stats.getBackstabMultiplier() + delta) * 100.0) / 100.0));
+            } else if (type == WeaponType.AXE) {
+                double delta = event.isShiftClick() ? 0.25 : 0.10;
+                if (event.isRightClick()) delta = -delta;
+                stats.setShieldBreakChance(Math.max(0.0, Math.min(1.0, Math.round((stats.getShieldBreakChance() + delta) * 100.0) / 100.0)));
+            } else {
+                int delta = event.isShiftClick() ? 5 : 1;
+                if (event.isRightClick()) delta = -delta;
+                stats.setReloadTacticalTicks(Math.max(0, stats.getReloadTacticalTicks() + delta));
+            }
             player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 1.0f, 1.0f);
             render();
             return;

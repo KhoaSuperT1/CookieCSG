@@ -17,6 +17,8 @@ import org.bukkit.inventory.meta.ItemMeta;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.function.Consumer;
+import java.util.function.IntConsumer;
 
 public class AnimationFramesMenu implements InventoryHolder {
 
@@ -33,6 +35,42 @@ public class AnimationFramesMenu implements InventoryHolder {
         render();
     }
 
+    private ItemStack createModelSlotItem(Material material, String title, String label, int currentId) {
+        return createItem(
+            material,
+            title,
+            ChatColor.GRAY + label + ": " + ChatColor.WHITE + currentId,
+            "",
+            ChatColor.GRAY + "Left-Click: +1 | Right-Click: -1",
+            ChatColor.GRAY + "Shift Left-Click: +10 | Shift Right-Click: -10",
+            ChatColor.YELLOW + "Click with a cursor item to assign its ModelData"
+        );
+    }
+
+    private ItemStack createFrameListSlotItem(Material material, String title, List<Integer> frames) {
+        List<Integer> safe = frames != null ? frames : List.of();
+        return createItem(
+            material,
+            title + " (" + safe.size() + ")",
+            ChatColor.GRAY + "Frame count: " + ChatColor.WHITE + safe.size(),
+            ChatColor.DARK_GRAY + (safe.size() > 8 ? safe.subList(0, 8) + "..." : safe.toString()),
+            "",
+            ChatColor.GRAY + "Left-Click: +1 frame | Shift Left-Click: +5 frames",
+            ChatColor.GRAY + "Right-Click: Remove last | Shift Right-Click: Clear",
+            ChatColor.YELLOW + "Click with a cursor item to append its ModelData"
+        );
+    }
+
+    private ItemStack createTickRateSlotItem(Material material, String title, int rate) {
+        return createItem(
+            material,
+            title,
+            ChatColor.GRAY + "Playback rate: " + ChatColor.WHITE + rate + " ticks/frame",
+            "",
+            ChatColor.GRAY + "Left-Click: +1 tick | Right-Click: -1 tick"
+        );
+    }
+
     public void render() {
         inventory.clear();
 
@@ -47,26 +85,9 @@ public class AnimationFramesMenu implements InventoryHolder {
             weapon.setAnimation(anim);
         }
 
-        inventory.setItem(10, createItem(
-            Material.ITEM_FRAME,
-            ChatColor.GOLD + "" + ChatColor.BOLD + "Idle Model Data",
-            ChatColor.GRAY + "Current Model ID: " + ChatColor.WHITE + anim.getIdleModelData(),
-            "",
-            ChatColor.GRAY + "Left-Click: +1 | Right-Click: -1",
-            ChatColor.GRAY + "Shift Left-Click: +10 | Shift Right-Click: -10",
-            ChatColor.YELLOW + "Click with a cursor item to assign its ModelData"
-        ));
-
-        inventory.setItem(12, createItem(
-            Material.IRON_SWORD,
-            ChatColor.YELLOW + "" + ChatColor.BOLD + "Deploy Model Data",
-            ChatColor.GRAY + "Deploy Model ID: " + ChatColor.WHITE + anim.getDeployModelData(),
-            "",
-            ChatColor.GRAY + "Left-Click: +1 | Right-Click: -1",
-            ChatColor.GRAY + "Shift Left-Click: +10 | Shift Right-Click: -10",
-            ChatColor.YELLOW + "Click with a cursor item to assign its ModelData"
-        ));
-
+        inventory.setItem(10, createModelSlotItem(Material.ITEM_FRAME, ChatColor.GOLD + "" + ChatColor.BOLD + "Idle Model Data", "Current Model ID", anim.getIdleModelData()));
+        inventory.setItem(11, createFrameListSlotItem(Material.FEATHER, ChatColor.YELLOW + "" + ChatColor.BOLD + "Deploy Frames", anim.getDeployFrames()));
+        inventory.setItem(12, createModelSlotItem(Material.IRON_SWORD, ChatColor.YELLOW + "" + ChatColor.BOLD + "Deploy Model Data", "Deploy Model ID", anim.getDeployModelData()));
         inventory.setItem(13, createItem(
             Material.CLOCK,
             ChatColor.AQUA + "" + ChatColor.BOLD + "Deploy Ticks",
@@ -75,72 +96,24 @@ public class AnimationFramesMenu implements InventoryHolder {
             ChatColor.GRAY + "Left-Click: +1 tick | Right-Click: -1 tick",
             ChatColor.GRAY + "Shift-Click: +/- 5 ticks"
         ));
+        inventory.setItem(14, createModelSlotItem(Material.SPYGLASS, ChatColor.GREEN + "" + ChatColor.BOLD + "ADS Model Data", "Iron Sights ADS Model ID", anim.getAdsModelData()));
+        inventory.setItem(15, createFrameListSlotItem(Material.ENDER_PEARL, ChatColor.GREEN + "" + ChatColor.BOLD + "ADS-In / Stance Frames", anim.getAdsInFrames()));
+        inventory.setItem(16, createModelSlotItem(Material.BLAZE_ROD, ChatColor.RED + "" + ChatColor.BOLD + "ADS Fire Model Data", "ADS recoil fire Model ID", anim.getAdsFireModelData()));
 
-        inventory.setItem(14, createItem(
-            Material.SPYGLASS,
-            ChatColor.GREEN + "" + ChatColor.BOLD + "ADS Model Data",
-            ChatColor.GRAY + "Iron Sights ADS Model ID: " + ChatColor.WHITE + anim.getAdsModelData(),
-            "",
-            ChatColor.GRAY + "Left-Click: +1 | Right-Click: -1",
-            ChatColor.GRAY + "Shift Left-Click: +10 | Shift Right-Click: -10",
-            ChatColor.YELLOW + "Click with a cursor item to assign its ModelData"
-        ));
+        inventory.setItem(19, createTickRateSlotItem(Material.REPEATER, ChatColor.YELLOW + "" + ChatColor.BOLD + "Deploy Tick Rate", anim.getDeployTickRate()));
+        inventory.setItem(20, createTickRateSlotItem(Material.REPEATER, ChatColor.GOLD + "" + ChatColor.BOLD + "Fire Tick Rate", anim.getFireTickRate()));
+        inventory.setItem(21, createTickRateSlotItem(Material.REPEATER, ChatColor.GREEN + "" + ChatColor.BOLD + "ADS Tick Rate", anim.getAdsTickRate()));
+        inventory.setItem(22, createFrameListSlotItem(Material.FIREWORK_STAR, ChatColor.RED + "" + ChatColor.BOLD + "ADS-Fire Frames", anim.getAdsFireFrames()));
+        inventory.setItem(23, createFrameListSlotItem(Material.SLIME_BALL, ChatColor.DARK_GREEN + "" + ChatColor.BOLD + "ADS-Out Frames", anim.getAdsOutFrames()));
+        inventory.setItem(24, createFrameListSlotItem(Material.STONE_SWORD, ChatColor.AQUA + "" + ChatColor.BOLD + "Melee Slash-2 Frames", anim.getSlash2Frames()));
+        inventory.setItem(25, createFrameListSlotItem(Material.DIAMOND_AXE, ChatColor.DARK_RED + "" + ChatColor.BOLD + "Melee Heavy Frames", anim.getHeavyFrames()));
 
-        inventory.setItem(16, createItem(
-            Material.BLAZE_ROD,
-            ChatColor.RED + "" + ChatColor.BOLD + "ADS Fire Model Data",
-            ChatColor.GRAY + "ADS recoil fire Model ID: " + ChatColor.WHITE + anim.getAdsFireModelData(),
-            "",
-            ChatColor.GRAY + "Left-Click: +1 | Right-Click: -1",
-            ChatColor.GRAY + "Shift Left-Click: +10 | Shift Right-Click: -10",
-            ChatColor.YELLOW + "Click with a cursor item to assign its ModelData"
-        ));
-
-        List<Integer> fireFrames = anim.getFireFrames() != null ? anim.getFireFrames() : new ArrayList<>();
-        inventory.setItem(28, createItem(
-            Material.FIRE_CHARGE,
-            ChatColor.GOLD + "" + ChatColor.BOLD + "Fire Animation Frames (" + fireFrames.size() + ")",
-            ChatColor.GRAY + "Frames: " + ChatColor.WHITE + fireFrames,
-            "",
-            ChatColor.GRAY + "Left-Click: Append frame (last + 1)",
-            ChatColor.GRAY + "Right-Click: Remove last frame",
-            ChatColor.GRAY + "Shift Right-Click: Clear all frames",
-            ChatColor.YELLOW + "Click with a cursor item to append its ModelData"
-        ));
-
-        List<Integer> inspectFrames = anim.getInspectFrames() != null ? anim.getInspectFrames() : new ArrayList<>();
-        inventory.setItem(30, createItem(
-            Material.AMETHYST_SHARD,
-            ChatColor.LIGHT_PURPLE + "" + ChatColor.BOLD + "Inspect Frames (" + inspectFrames.size() + ")",
-            ChatColor.GRAY + "Frame count: " + ChatColor.WHITE + inspectFrames.size(),
-            ChatColor.DARK_GRAY + (inspectFrames.size() > 8 ? inspectFrames.subList(0, 8) + "..." : inspectFrames.toString()),
-            "",
-            ChatColor.GRAY + "Left-Click: Append frame",
-            ChatColor.GRAY + "Right-Click: Remove last frame",
-            ChatColor.GRAY + "Shift Right-Click: Clear all frames",
-            ChatColor.YELLOW + "Click with a cursor item to append its ModelData"
-        ));
-
-        inventory.setItem(31, createItem(
-            Material.REPEATER,
-            ChatColor.WHITE + "" + ChatColor.BOLD + "Inspect Tick Rate",
-            ChatColor.GRAY + "Inspect playback rate: " + ChatColor.WHITE + anim.getInspectTickRate() + " ticks/frame",
-            "",
-            ChatColor.GRAY + "Left-Click: +1 tick | Right-Click: -1 tick"
-        ));
-
-        List<Integer> reloadFrames = anim.getReloadFrames() != null ? anim.getReloadFrames() : new ArrayList<>();
-        inventory.setItem(34, createItem(
-            Material.CROSSBOW,
-            ChatColor.DARK_AQUA + "" + ChatColor.BOLD + "Reload Frames (" + reloadFrames.size() + ")",
-            ChatColor.GRAY + "Frame count: " + ChatColor.WHITE + reloadFrames.size(),
-            ChatColor.DARK_GRAY + (reloadFrames.size() > 8 ? reloadFrames.subList(0, 8) + "..." : reloadFrames.toString()),
-            "",
-            ChatColor.GRAY + "Left-Click: Append frame",
-            ChatColor.GRAY + "Right-Click: Remove last frame",
-            ChatColor.GRAY + "Shift Right-Click: Clear all frames",
-            ChatColor.YELLOW + "Click with a cursor item to append its ModelData"
-        ));
+        inventory.setItem(28, createFrameListSlotItem(Material.FIRE_CHARGE, ChatColor.GOLD + "" + ChatColor.BOLD + "Fire Animation Frames", anim.getFireFrames()));
+        inventory.setItem(30, createFrameListSlotItem(Material.AMETHYST_SHARD, ChatColor.LIGHT_PURPLE + "" + ChatColor.BOLD + "Inspect Frames", anim.getInspectFrames()));
+        inventory.setItem(31, createTickRateSlotItem(Material.REPEATER, ChatColor.WHITE + "" + ChatColor.BOLD + "Inspect Tick Rate", anim.getInspectTickRate()));
+        inventory.setItem(32, createFrameListSlotItem(Material.SPECTRAL_ARROW, ChatColor.BLUE + "" + ChatColor.BOLD + "Tactical Reload Frames", anim.getReloadTacticalFrames()));
+        inventory.setItem(33, createTickRateSlotItem(Material.REPEATER, ChatColor.DARK_AQUA + "" + ChatColor.BOLD + "Reload Tick Rate", anim.getReloadTickRate()));
+        inventory.setItem(34, createFrameListSlotItem(Material.CROSSBOW, ChatColor.DARK_AQUA + "" + ChatColor.BOLD + "Reload Frames", anim.getReloadFrames()));
 
         inventory.setItem(49, createItem(
             Material.BARRIER,
@@ -169,6 +142,52 @@ public class AnimationFramesMenu implements InventoryHolder {
         return -1;
     }
 
+    private void adjustModelDataSlot(InventoryClickEvent event, int cursorModel, int current, IntConsumer setter) {
+        if (cursorModel >= 0) {
+            setter.accept(cursorModel);
+            player.playSound(player.getLocation(), Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 1.0f, 1.0f);
+        } else {
+            int delta = event.isShiftClick() ? 10 : 1;
+            if (event.isRightClick()) delta = -delta;
+            setter.accept(Math.max(0, current + delta));
+            player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 1.0f, 1.0f);
+        }
+        render();
+    }
+
+    private void adjustFrameListSlot(InventoryClickEvent event, int cursorModel, List<Integer> existing, int seedOffset, Consumer<List<Integer>> setter) {
+        List<Integer> list = new ArrayList<>(existing != null ? existing : List.of());
+        if (cursorModel >= 0) {
+            list.add(cursorModel);
+            player.playSound(player.getLocation(), Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 1.0f, 1.0f);
+        } else if (event.isShiftClick() && event.isRightClick()) {
+            list.clear();
+            player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 1.0f, 0.8f);
+        } else if (event.isRightClick()) {
+            if (!list.isEmpty()) {
+                list.remove(list.size() - 1);
+                player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 1.0f, 0.8f);
+            }
+        } else {
+            int count = event.isShiftClick() ? 5 : 1;
+            int idleBase = weapon.getAnimation() != null ? weapon.getAnimation().getIdleModelData() : 0;
+            int next = list.isEmpty() ? (idleBase > 0 ? idleBase + seedOffset : 100000 + seedOffset) : list.get(list.size() - 1) + 1;
+            for (int i = 0; i < count; i++) {
+                list.add(next + i);
+            }
+            player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 1.0f, 1.2f);
+        }
+        setter.accept(list);
+        render();
+    }
+
+    private void adjustTickRateSlot(InventoryClickEvent event, int current, IntConsumer setter) {
+        int delta = event.isRightClick() ? -1 : 1;
+        setter.accept(Math.max(1, current + delta));
+        player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 1.0f, 1.0f);
+        render();
+    }
+
     public void handleClick(InventoryClickEvent event) {
         int rawSlot = event.getRawSlot();
         WeaponAnimation anim = weapon.getAnimation();
@@ -177,154 +196,41 @@ public class AnimationFramesMenu implements InventoryHolder {
             weapon.setAnimation(anim);
         }
 
-        ItemStack cursor = event.getCursor();
-        int cursorModel = extractCursorModel(cursor);
+        int cursorModel = extractCursorModel(event.getCursor());
 
-        if (rawSlot == 10) {
-            if (cursorModel >= 0) {
-                anim.setIdleModelData(cursorModel);
-                player.playSound(player.getLocation(), Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 1.0f, 1.0f);
-            } else {
-                int delta = event.isShiftClick() ? 10 : 1;
+        switch (rawSlot) {
+            case 10 -> adjustModelDataSlot(event, cursorModel, anim.getIdleModelData(), anim::setIdleModelData);
+            case 11 -> adjustFrameListSlot(event, cursorModel, anim.getDeployFrames(), 1, anim::setDeployFrames);
+            case 12 -> adjustModelDataSlot(event, cursorModel, anim.getDeployModelData(), anim::setDeployModelData);
+            case 13 -> {
+                int delta = event.isShiftClick() ? 5 : 1;
                 if (event.isRightClick()) delta = -delta;
-                anim.setIdleModelData(Math.max(0, anim.getIdleModelData() + delta));
+                anim.setDeployTicks(Math.max(1, anim.getDeployTicks() + delta));
                 player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 1.0f, 1.0f);
+                render();
             }
-            render();
-            return;
-        }
-
-        if (rawSlot == 12) {
-            if (cursorModel >= 0) {
-                anim.setDeployModelData(cursorModel);
-                player.playSound(player.getLocation(), Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 1.0f, 1.0f);
-            } else {
-                int delta = event.isShiftClick() ? 10 : 1;
-                if (event.isRightClick()) delta = -delta;
-                anim.setDeployModelData(Math.max(0, anim.getDeployModelData() + delta));
+            case 14 -> adjustModelDataSlot(event, cursorModel, anim.getAdsModelData(), anim::setAdsModelData);
+            case 15 -> adjustFrameListSlot(event, cursorModel, anim.getAdsInFrames(), 30, anim::setAdsInFrames);
+            case 16 -> adjustModelDataSlot(event, cursorModel, anim.getAdsFireModelData(), anim::setAdsFireModelData);
+            case 19 -> adjustTickRateSlot(event, anim.getDeployTickRate(), anim::setDeployTickRate);
+            case 20 -> adjustTickRateSlot(event, anim.getFireTickRate(), anim::setFireTickRate);
+            case 21 -> adjustTickRateSlot(event, anim.getAdsTickRate(), anim::setAdsTickRate);
+            case 22 -> adjustFrameListSlot(event, cursorModel, anim.getAdsFireFrames(), 40, anim::setAdsFireFrames);
+            case 23 -> adjustFrameListSlot(event, cursorModel, anim.getAdsOutFrames(), 45, anim::setAdsOutFrames);
+            case 24 -> adjustFrameListSlot(event, cursorModel, anim.getSlash2Frames(), 50, anim::setSlash2Frames);
+            case 25 -> adjustFrameListSlot(event, cursorModel, anim.getHeavyFrames(), 60, anim::setHeavyFrames);
+            case 28 -> adjustFrameListSlot(event, cursorModel, anim.getFireFrames(), 1, anim::setFireFrames);
+            case 30 -> adjustFrameListSlot(event, cursorModel, anim.getInspectFrames(), 10, anim::setInspectFrames);
+            case 31 -> adjustTickRateSlot(event, anim.getInspectTickRate(), anim::setInspectTickRate);
+            case 32 -> adjustFrameListSlot(event, cursorModel, anim.getReloadTacticalFrames(), 70, anim::setReloadTacticalFrames);
+            case 33 -> adjustTickRateSlot(event, anim.getReloadTickRate(), anim::setReloadTickRate);
+            case 34 -> adjustFrameListSlot(event, cursorModel, anim.getReloadFrames(), 20, anim::setReloadFrames);
+            case 49 -> {
                 player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 1.0f, 1.0f);
+                plugin.getGuiManager().openWeaponEditor(player, weapon);
             }
-            render();
-            return;
-        }
-
-        if (rawSlot == 13) {
-            int delta = event.isShiftClick() ? 5 : 1;
-            if (event.isRightClick()) delta = -delta;
-            anim.setDeployTicks(Math.max(1, anim.getDeployTicks() + delta));
-            player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 1.0f, 1.0f);
-            render();
-            return;
-        }
-
-        if (rawSlot == 14) {
-            if (cursorModel >= 0) {
-                anim.setAdsModelData(cursorModel);
-                player.playSound(player.getLocation(), Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 1.0f, 1.0f);
-            } else {
-                int delta = event.isShiftClick() ? 10 : 1;
-                if (event.isRightClick()) delta = -delta;
-                anim.setAdsModelData(Math.max(0, anim.getAdsModelData() + delta));
-                player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 1.0f, 1.0f);
+            default -> {
             }
-            render();
-            return;
-        }
-
-        if (rawSlot == 16) {
-            if (cursorModel >= 0) {
-                anim.setAdsFireModelData(cursorModel);
-                player.playSound(player.getLocation(), Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 1.0f, 1.0f);
-            } else {
-                int delta = event.isShiftClick() ? 10 : 1;
-                if (event.isRightClick()) delta = -delta;
-                anim.setAdsFireModelData(Math.max(0, anim.getAdsFireModelData() + delta));
-                player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 1.0f, 1.0f);
-            }
-            render();
-            return;
-        }
-
-        if (rawSlot == 28) {
-            List<Integer> list = new ArrayList<>(anim.getFireFrames() != null ? anim.getFireFrames() : List.of());
-            if (cursorModel >= 0) {
-                list.add(cursorModel);
-                player.playSound(player.getLocation(), Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 1.0f, 1.0f);
-            } else if (event.isShiftClick() && event.isRightClick()) {
-                list.clear();
-                player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 1.0f, 0.8f);
-            } else if (event.isRightClick()) {
-                if (!list.isEmpty()) {
-                    list.remove(list.size() - 1);
-                    player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 1.0f, 0.8f);
-                }
-            } else {
-                int next = list.isEmpty() ? (anim.getIdleModelData() > 0 ? anim.getIdleModelData() + 1 : 100001) : list.get(list.size() - 1) + 1;
-                list.add(next);
-                player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 1.0f, 1.2f);
-            }
-            anim.setFireFrames(list);
-            render();
-            return;
-        }
-
-        if (rawSlot == 30) {
-            List<Integer> list = new ArrayList<>(anim.getInspectFrames() != null ? anim.getInspectFrames() : List.of());
-            if (cursorModel >= 0) {
-                list.add(cursorModel);
-                player.playSound(player.getLocation(), Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 1.0f, 1.0f);
-            } else if (event.isShiftClick() && event.isRightClick()) {
-                list.clear();
-                player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 1.0f, 0.8f);
-            } else if (event.isRightClick()) {
-                if (!list.isEmpty()) {
-                    list.remove(list.size() - 1);
-                    player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 1.0f, 0.8f);
-                }
-            } else {
-                int next = list.isEmpty() ? (anim.getIdleModelData() > 0 ? anim.getIdleModelData() + 10 : 100110) : list.get(list.size() - 1) + 1;
-                list.add(next);
-                player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 1.0f, 1.2f);
-            }
-            anim.setInspectFrames(list);
-            render();
-            return;
-        }
-
-        if (rawSlot == 31) {
-            int delta = event.isRightClick() ? -1 : 1;
-            anim.setInspectTickRate(Math.max(1, anim.getInspectTickRate() + delta));
-            player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 1.0f, 1.0f);
-            render();
-            return;
-        }
-
-        if (rawSlot == 34) {
-            List<Integer> list = new ArrayList<>(anim.getReloadFrames() != null ? anim.getReloadFrames() : List.of());
-            if (cursorModel >= 0) {
-                list.add(cursorModel);
-                player.playSound(player.getLocation(), Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 1.0f, 1.0f);
-            } else if (event.isShiftClick() && event.isRightClick()) {
-                list.clear();
-                player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 1.0f, 0.8f);
-            } else if (event.isRightClick()) {
-                if (!list.isEmpty()) {
-                    list.remove(list.size() - 1);
-                    player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 1.0f, 0.8f);
-                }
-            } else {
-                int next = list.isEmpty() ? (anim.getIdleModelData() > 0 ? anim.getIdleModelData() + 20 : 100120) : list.get(list.size() - 1) + 1;
-                list.add(next);
-                player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 1.0f, 1.2f);
-            }
-            anim.setReloadFrames(list);
-            render();
-            return;
-        }
-
-        if (rawSlot == 49) {
-            player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 1.0f, 1.0f);
-            plugin.getGuiManager().openWeaponEditor(player, weapon);
         }
     }
 

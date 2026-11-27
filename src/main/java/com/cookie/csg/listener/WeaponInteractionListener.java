@@ -346,7 +346,7 @@ public class WeaponInteractionListener implements Listener {
         if (weapon != null) {
             if (player.isSneaking() && weapon.getType().isGun()) {
                 plugin.getAnimationEngine().playReloadAnimation(player, weapon, item);
-            } else {
+            } else if (!weapon.isDefaultMode()) {
                 plugin.getAnimationEngine().startInspect(player, weapon);
             }
         }

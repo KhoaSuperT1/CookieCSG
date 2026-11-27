@@ -6,6 +6,7 @@ import com.cookie.csg.model.WeaponAds;
 import com.cookie.csg.model.WeaponAnimation;
 import com.cookie.csg.model.WeaponAudio;
 import com.cookie.csg.model.WeaponDefinition;
+import com.cookie.csg.model.WeaponMode;
 import com.cookie.csg.model.WeaponRecoil;
 import com.cookie.csg.model.WeaponStats;
 import com.cookie.csg.model.WeaponType;
@@ -25,8 +26,14 @@ import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.plugin.Plugin;
 
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -63,7 +70,9 @@ public class WeaponManager {
         Map.entry("ursus", "db_long"),
         Map.entry("evolys", "fn_evolys"),
         Map.entry("scarl", "scar_l"),
-        Map.entry("mk20", "scar_mk20")
+        Map.entry("mk20", "scar_mk20"),
+        Map.entry("m1911", "p1911"),
+        Map.entry("colt1911", "p1911")
     );
 
     private final Plugin plugin;
@@ -125,6 +134,10 @@ public class WeaponManager {
     private WeaponDefinition loadFromYaml(YamlConfiguration yaml, String defaultId) {
         String id = yaml.getString("id", defaultId);
         String displayName = yaml.getString("display-name", id);
+        WeaponMode fallbackMode = yaml.isConfigurationSection("animation") ? WeaponMode.MODEL : WeaponMode.DEFAULT;
+        WeaponMode mode = yaml.contains("mode")
+            ? WeaponMode.fromString(yaml.getString("mode"), fallbackMode)
+            : fallbackMode;
         WeaponType type;
         try {
             type = WeaponType.valueOf(yaml.getString("type", "RIFLE").toUpperCase());
@@ -136,46 +149,52 @@ public class WeaponManager {
             material = type.isMelee() ? Material.IRON_SWORD : Material.IRON_HORSE_ARMOR;
         }
 
-        WeaponAnimation animation = new WeaponAnimation(
-            yaml.getInt("animation.idle-model", 0),
-            yaml.getInt("animation.deploy-model", 0),
-            yaml.getInt("animation.deploy-ticks", 5),
-            yaml.getInt("animation.ads-model", 0),
-            yaml.getInt("animation.ads-fire-model", 0),
-            yaml.getIntegerList("animation.fire-frames"),
-            yaml.getIntegerList("animation.inspect-frames"),
-            yaml.getIntegerList("animation.reload-frames"),
-            yaml.getInt("animation.inspect-tick-rate", 1)
-        );
-        animation.setDeployFrames(yaml.getIntegerList("animation.deploy-frames"));
-        animation.setDeployTickRate(yaml.getInt("animation.deploy-tick-rate", 1));
-        animation.setAdsInFrames(yaml.getIntegerList("animation.ads-in-frames"));
-        animation.setAdsFireFrames(yaml.getIntegerList("animation.ads-fire-frames"));
-        animation.setAdsOutFrames(yaml.getIntegerList("animation.ads-out-frames"));
-        animation.setSlash2Frames(yaml.getIntegerList("animation.slash2-frames"));
-        animation.setHeavyFrames(yaml.getIntegerList("animation.heavy-frames"));
-        animation.setFireTickRate(yaml.getInt("animation.fire-tick-rate", 1));
-        animation.setAdsTickRate(yaml.getInt("animation.ads-tick-rate", 1));
-        animation.setReloadTickRate(yaml.getInt("animation.reload-tick-rate", 1));
-        animation.setReloadTacticalFrames(yaml.getIntegerList("animation.reload-tactical-frames"));
-        animation.setReloadIntroFrames(yaml.getIntegerList("animation.reload-intro-frames"));
-        animation.setReloadIntroTicks(yaml.getInt("animation.reload-intro-ticks", 0));
-        animation.setReloadLoopFrames(yaml.getIntegerList("animation.reload-loop-frames"));
-        animation.setReloadLoopTicks(yaml.getInt("animation.reload-loop-ticks", 0));
-        animation.setReloadEndFrames(yaml.getIntegerList("animation.reload-end-frames"));
-        animation.setReloadEndTicks(yaml.getInt("animation.reload-end-ticks", 0));
-        ConfigurationSection frameModelsSection = yaml.getConfigurationSection("animation.frame-models");
-        if (frameModelsSection != null) {
-            for (String key : frameModelsSection.getKeys(false)) {
-                try {
-                    int cmd = Integer.parseInt(key);
-                    String modelKey = frameModelsSection.getString(key, "");
-                    if (!modelKey.isBlank()) {
-                        animation.putFrameModel(cmd, modelKey);
+        WeaponAnimation animation;
+        if (mode == WeaponMode.MODEL) {
+            animation = new WeaponAnimation(
+                yaml.getInt("animation.idle-model", 0),
+                yaml.getInt("animation.deploy-model", 0),
+                yaml.getInt("animation.deploy-ticks", 5),
+                yaml.getInt("animation.ads-model", 0),
+                yaml.getInt("animation.ads-fire-model", 0),
+                yaml.getIntegerList("animation.fire-frames"),
+                yaml.getIntegerList("animation.inspect-frames"),
+                yaml.getIntegerList("animation.reload-frames"),
+                yaml.getInt("animation.inspect-tick-rate", 1)
+            );
+            animation.setDeployFrames(yaml.getIntegerList("animation.deploy-frames"));
+            animation.setDeployTickRate(yaml.getInt("animation.deploy-tick-rate", 1));
+            animation.setAdsInFrames(yaml.getIntegerList("animation.ads-in-frames"));
+            animation.setAdsFireFrames(yaml.getIntegerList("animation.ads-fire-frames"));
+            animation.setAdsOutFrames(yaml.getIntegerList("animation.ads-out-frames"));
+            animation.setSlash2Frames(yaml.getIntegerList("animation.slash2-frames"));
+            animation.setHeavyFrames(yaml.getIntegerList("animation.heavy-frames"));
+            animation.setFireTickRate(yaml.getInt("animation.fire-tick-rate", 1));
+            animation.setAdsTickRate(yaml.getInt("animation.ads-tick-rate", 1));
+            animation.setReloadTickRate(yaml.getInt("animation.reload-tick-rate", 1));
+            animation.setReloadTacticalFrames(yaml.getIntegerList("animation.reload-tactical-frames"));
+            animation.setReloadIntroFrames(yaml.getIntegerList("animation.reload-intro-frames"));
+            animation.setReloadIntroTicks(yaml.getInt("animation.reload-intro-ticks", 0));
+            animation.setReloadLoopFrames(yaml.getIntegerList("animation.reload-loop-frames"));
+            animation.setReloadLoopTicks(yaml.getInt("animation.reload-loop-ticks", 0));
+            animation.setReloadEndFrames(yaml.getIntegerList("animation.reload-end-frames"));
+            animation.setReloadEndTicks(yaml.getInt("animation.reload-end-ticks", 0));
+            animation.setItemModelNamespace(yaml.getString("animation.item-model-namespace", "cookie_csg"));
+            ConfigurationSection frameModelsSection = yaml.getConfigurationSection("animation.frame-models");
+            if (frameModelsSection != null) {
+                for (String key : frameModelsSection.getKeys(false)) {
+                    try {
+                        int cmd = Integer.parseInt(key);
+                        String modelKey = frameModelsSection.getString(key, "");
+                        if (!modelKey.isBlank()) {
+                            animation.putFrameModel(cmd, modelKey);
+                        }
+                    } catch (NumberFormatException ignored) {
                     }
-                } catch (NumberFormatException ignored) {
                 }
             }
+        } else {
+            animation = new WeaponAnimation();
         }
 
         double defaultDamage = type.getDefaultDamage();
@@ -244,7 +263,9 @@ public class WeaponManager {
         audio.setReloadClipInTick(yaml.getInt("audio.reload-clip-in-tick", -1));
         audio.setReloadBoltTick(yaml.getInt("audio.reload-bolt-tick", -1));
 
-        return new WeaponDefinition(id, displayName, type, material, animation, stats, ads, recoil, audio);
+        WeaponDefinition def = new WeaponDefinition(id, displayName, type, material, animation, stats, ads, recoil, audio);
+        def.setMode(mode);
+        return def;
     }
 
     public void saveWeapon(WeaponDefinition weapon) {
@@ -259,64 +280,70 @@ public class WeaponManager {
 
         yaml.set("id", weapon.getId());
         yaml.set("display-name", weapon.getDisplayName());
+        yaml.set("mode", weapon.getMode().getConfigValue());
         yaml.set("type", weapon.getType().name());
         yaml.set("material", weapon.getMaterial().name());
 
-        yaml.set("animation.idle-model", weapon.getAnimation().getIdleModelData());
-        yaml.set("animation.deploy-model", weapon.getAnimation().getDeployModelData());
-        yaml.set("animation.deploy-ticks", weapon.getAnimation().getDeployTicks());
-        if (!weapon.getAnimation().getDeployFrames().isEmpty()) {
-            yaml.set("animation.deploy-frames", weapon.getAnimation().getDeployFrames());
-            yaml.set("animation.deploy-tick-rate", weapon.getAnimation().getDeployTickRate());
-        }
-        yaml.set("animation.ads-model", weapon.getAnimation().getAdsModelData());
-        yaml.set("animation.ads-fire-model", weapon.getAnimation().getAdsFireModelData());
-        if (!weapon.getAnimation().getAdsInFrames().isEmpty()) {
-            yaml.set("animation.ads-in-frames", weapon.getAnimation().getAdsInFrames());
-        }
-        if (!weapon.getAnimation().getAdsFireFrames().isEmpty()) {
-            yaml.set("animation.ads-fire-frames", weapon.getAnimation().getAdsFireFrames());
-        }
-        if (!weapon.getAnimation().getAdsOutFrames().isEmpty()) {
-            yaml.set("animation.ads-out-frames", weapon.getAnimation().getAdsOutFrames());
-        }
-        yaml.set("animation.ads-tick-rate", weapon.getAnimation().getAdsTickRate());
-        yaml.set("animation.fire-tick-rate", weapon.getAnimation().getFireTickRate());
-        yaml.set("animation.inspect-tick-rate", weapon.getAnimation().getInspectTickRate());
-        yaml.set("animation.reload-tick-rate", weapon.getAnimation().getReloadTickRate());
-        yaml.set("animation.fire-frames", weapon.getAnimation().getFireFrames());
-        if (!weapon.getAnimation().getSlash2Frames().isEmpty()) {
-            yaml.set("animation.slash2-frames", weapon.getAnimation().getSlash2Frames());
-        }
-        if (!weapon.getAnimation().getHeavyFrames().isEmpty()) {
-            yaml.set("animation.heavy-frames", weapon.getAnimation().getHeavyFrames());
-        }
-        yaml.set("animation.inspect-frames", weapon.getAnimation().getInspectFrames());
-        yaml.set("animation.reload-frames", weapon.getAnimation().getReloadFrames());
-        if (!weapon.getAnimation().getReloadTacticalFrames().isEmpty()) {
-            yaml.set("animation.reload-tactical-frames", weapon.getAnimation().getReloadTacticalFrames());
-        }
-        if (!weapon.getAnimation().getReloadIntroFrames().isEmpty()) {
-            yaml.set("animation.reload-intro-frames", weapon.getAnimation().getReloadIntroFrames());
-        }
-        if (weapon.getAnimation().getReloadIntroTicks() > 0) {
-            yaml.set("animation.reload-intro-ticks", weapon.getAnimation().getReloadIntroTicks());
-        }
-        if (!weapon.getAnimation().getReloadLoopFrames().isEmpty()) {
-            yaml.set("animation.reload-loop-frames", weapon.getAnimation().getReloadLoopFrames());
-        }
-        if (weapon.getAnimation().getReloadLoopTicks() > 0) {
-            yaml.set("animation.reload-loop-ticks", weapon.getAnimation().getReloadLoopTicks());
-        }
-        if (!weapon.getAnimation().getReloadEndFrames().isEmpty()) {
-            yaml.set("animation.reload-end-frames", weapon.getAnimation().getReloadEndFrames());
-        }
-        if (weapon.getAnimation().getReloadEndTicks() > 0) {
-            yaml.set("animation.reload-end-ticks", weapon.getAnimation().getReloadEndTicks());
-        }
-        if (!weapon.getAnimation().getFrameModels().isEmpty()) {
-            for (Map.Entry<Integer, String> entry : weapon.getAnimation().getFrameModels().entrySet()) {
-                yaml.set("animation.frame-models." + entry.getKey(), entry.getValue());
+        if (weapon.isModelMode()) {
+            yaml.set("animation.idle-model", weapon.getAnimation().getIdleModelData());
+            yaml.set("animation.deploy-model", weapon.getAnimation().getDeployModelData());
+            yaml.set("animation.deploy-ticks", weapon.getAnimation().getDeployTicks());
+            if (!weapon.getAnimation().getDeployFrames().isEmpty()) {
+                yaml.set("animation.deploy-frames", weapon.getAnimation().getDeployFrames());
+                yaml.set("animation.deploy-tick-rate", weapon.getAnimation().getDeployTickRate());
+            }
+            yaml.set("animation.ads-model", weapon.getAnimation().getAdsModelData());
+            yaml.set("animation.ads-fire-model", weapon.getAnimation().getAdsFireModelData());
+            if (!weapon.getAnimation().getAdsInFrames().isEmpty()) {
+                yaml.set("animation.ads-in-frames", weapon.getAnimation().getAdsInFrames());
+            }
+            if (!weapon.getAnimation().getAdsFireFrames().isEmpty()) {
+                yaml.set("animation.ads-fire-frames", weapon.getAnimation().getAdsFireFrames());
+            }
+            if (!weapon.getAnimation().getAdsOutFrames().isEmpty()) {
+                yaml.set("animation.ads-out-frames", weapon.getAnimation().getAdsOutFrames());
+            }
+            yaml.set("animation.ads-tick-rate", weapon.getAnimation().getAdsTickRate());
+            yaml.set("animation.fire-tick-rate", weapon.getAnimation().getFireTickRate());
+            yaml.set("animation.inspect-tick-rate", weapon.getAnimation().getInspectTickRate());
+            yaml.set("animation.reload-tick-rate", weapon.getAnimation().getReloadTickRate());
+            yaml.set("animation.fire-frames", weapon.getAnimation().getFireFrames());
+            if (!weapon.getAnimation().getSlash2Frames().isEmpty()) {
+                yaml.set("animation.slash2-frames", weapon.getAnimation().getSlash2Frames());
+            }
+            if (!weapon.getAnimation().getHeavyFrames().isEmpty()) {
+                yaml.set("animation.heavy-frames", weapon.getAnimation().getHeavyFrames());
+            }
+            yaml.set("animation.inspect-frames", weapon.getAnimation().getInspectFrames());
+            yaml.set("animation.reload-frames", weapon.getAnimation().getReloadFrames());
+            if (!weapon.getAnimation().getReloadTacticalFrames().isEmpty()) {
+                yaml.set("animation.reload-tactical-frames", weapon.getAnimation().getReloadTacticalFrames());
+            }
+            if (!weapon.getAnimation().getReloadIntroFrames().isEmpty()) {
+                yaml.set("animation.reload-intro-frames", weapon.getAnimation().getReloadIntroFrames());
+            }
+            if (weapon.getAnimation().getReloadIntroTicks() > 0) {
+                yaml.set("animation.reload-intro-ticks", weapon.getAnimation().getReloadIntroTicks());
+            }
+            if (!weapon.getAnimation().getReloadLoopFrames().isEmpty()) {
+                yaml.set("animation.reload-loop-frames", weapon.getAnimation().getReloadLoopFrames());
+            }
+            if (weapon.getAnimation().getReloadLoopTicks() > 0) {
+                yaml.set("animation.reload-loop-ticks", weapon.getAnimation().getReloadLoopTicks());
+            }
+            if (!weapon.getAnimation().getReloadEndFrames().isEmpty()) {
+                yaml.set("animation.reload-end-frames", weapon.getAnimation().getReloadEndFrames());
+            }
+            if (weapon.getAnimation().getReloadEndTicks() > 0) {
+                yaml.set("animation.reload-end-ticks", weapon.getAnimation().getReloadEndTicks());
+            }
+            if (weapon.getAnimation().getItemModelNamespace() != null && !"cookie_csg".equalsIgnoreCase(weapon.getAnimation().getItemModelNamespace())) {
+                yaml.set("animation.item-model-namespace", weapon.getAnimation().getItemModelNamespace());
+            }
+            if (!weapon.getAnimation().getFrameModels().isEmpty()) {
+                for (Map.Entry<Integer, String> entry : weapon.getAnimation().getFrameModels().entrySet()) {
+                    yaml.set("animation.frame-models." + entry.getKey(), entry.getValue());
+                }
             }
         }
 
@@ -393,6 +420,9 @@ public class WeaponManager {
         }
         String canonicalId = def.getId().toLowerCase();
         weapons.put(canonicalId, def);
+        if (def.isDefaultMode()) {
+            return;
+        }
         Material mat = def.getMaterial() != null ? def.getMaterial() : Material.IRON_HOE;
         Map<Integer, String> matMap = cmdLookup.computeIfAbsent(mat, k -> new ConcurrentHashMap<>());
         WeaponAnimation anim = def.getAnimation();
@@ -435,70 +465,108 @@ public class WeaponManager {
     }
 
     public void createDefaultWeapons() {
-        WeaponDefinition ak47 = new WeaponDefinition(
-            "ak47",
-            "&6&lAK-47 &7| Case Hardened",
-            WeaponType.RIFLE,
-            Material.IRON_HORSE_ARMOR,
-            new WeaponAnimation(100100, 100101, 6, 100105, 100106, List.of(100102, 100103), List.of(100110, 100111, 100112, 100113, 100114, 100115, 100116, 100117), List.of(100120, 100121, 100122), 2),
-            new WeaponStats(7.5, 4.0, 2, 30, 90, 45, 64.0, 0.90, 0.70, 1.0, 0.0),
-            new WeaponAds(true, 1, 0.15, 0.60, false),
-            new WeaponRecoil(1.2, 0.4, 0.035, 2.5),
-            new WeaponAudio("csgo.weapon.ak47.shoot", "csgo.weapon.aim.in", "csgo.weapon.aim.out", "csgo.weapon.ak47.deploy", "csgo.weapon.ak47.clipout", "csgo.weapon.ak47.clipin", "csgo.weapon.ak47.boltpull", "csgo.weapon.ak47.inspect", "csgo.weapon.dryfire", "csgo.weapon.knife.backstab", "item.shield.break")
-        );
-        saveWeapon(ak47);
+        List<String> bundledIds = List.of("p1911", "bayonet");
+        weapons.clear();
+        cmdLookup.clear();
+        for (String wid : bundledIds) {
+            WeaponDefinition def = loadBundledWeapon(wid);
+            if (def != null) {
+                saveWeapon(def);
+            }
+        }
+        if (plugin != null) {
+            plugin.getLogger().info("Loaded " + weapons.size() + " bundled default weapons.");
+        }
+    }
 
-        WeaponDefinition awp = new WeaponDefinition(
-            "awp",
-            "&a&lAWP &7| Dragon Lore",
-            WeaponType.SNIPER,
-            Material.IRON_HORSE_ARMOR,
-            new WeaponAnimation(100200, 100201, 8, 100205, 100206, List.of(100202, 100203, 100204), List.of(100210, 100211, 100212, 100213, 100214), List.of(100220, 100221, 100222, 100223), 3),
-            new WeaponStats(20.0, 5.0, 28, 5, 30, 70, 128.0, 0.80, 0.45, 1.0, 0.0),
-            new WeaponAds(true, 4, 0.0, 0.30, true),
-            new WeaponRecoil(3.5, 0.8, 0.15, 3.0),
-            new WeaponAudio("csgo.weapon.awp.shoot", "csgo.weapon.aim.in", "csgo.weapon.aim.out", "csgo.weapon.awp.deploy", "csgo.weapon.awp.clipout", "csgo.weapon.awp.clipin", "csgo.weapon.awp.boltpull", "csgo.weapon.awp.inspect", "csgo.weapon.dryfire", "csgo.weapon.knife.backstab", "item.shield.break")
-        );
-        saveWeapon(awp);
+    private WeaponDefinition loadBundledWeapon(String wid) {
+        String resourcePath = "weapons/" + wid + ".yml";
+        try (InputStream in = openResourceStream(resourcePath)) {
+            if (in == null) {
+                return null;
+            }
+            try (InputStreamReader reader = new InputStreamReader(in, StandardCharsets.UTF_8)) {
+                YamlConfiguration yaml = YamlConfiguration.loadConfiguration(reader);
+                if (!yaml.contains("id") || yaml.getString("id", "").isBlank()) {
+                    yaml.set("id", wid);
+                }
+                return loadFromYaml(yaml, wid);
+            }
+        } catch (IOException e) {
+            if (plugin != null) {
+                plugin.getLogger().warning("Failed to load bundled weapon " + wid + ": " + e.getMessage());
+            }
+            return null;
+        }
+    }
 
-        WeaponDefinition deagle = new WeaponDefinition(
-            "deagle",
-            "&e&lDesert Eagle &7| Blaze",
-            WeaponType.PISTOL,
-            Material.IRON_HORSE_ARMOR,
-            new WeaponAnimation(100300, 100301, 4, 100305, 100306, List.of(100302, 100303), List.of(100310, 100311, 100312, 100313, 100314, 100315), List.of(100320, 100321, 100322), 2),
-            new WeaponStats(9.0, 4.0, 5, 7, 35, 40, 48.0, 0.95, 0.80, 1.0, 0.0),
-            new WeaponAds(true, 1, 0.20, 0.50, false),
-            new WeaponRecoil(2.0, 0.6, 0.025, 2.0),
-            new WeaponAudio("csgo.weapon.deagle.shoot", "csgo.weapon.aim.in", "csgo.weapon.aim.out", "csgo.weapon.deagle.deploy", "csgo.weapon.deagle.clipout", "csgo.weapon.deagle.clipin", "csgo.weapon.deagle.boltpull", "csgo.weapon.deagle.inspect", "csgo.weapon.dryfire", "csgo.weapon.knife.backstab", "item.shield.break")
-        );
-        saveWeapon(deagle);
+    private InputStream openResourceStream(String resourcePath) {
+        if (plugin != null) {
+            InputStream stream = plugin.getResource(resourcePath);
+            if (stream != null) {
+                return stream;
+            }
+        }
+        ClassLoader cl = WeaponManager.class.getClassLoader();
+        return cl != null ? cl.getResourceAsStream(resourcePath) : null;
+    }
 
-        WeaponDefinition karambit = new WeaponDefinition(
-            "karambit",
-            "&d&lKarambit &7| Fade",
-            WeaponType.KNIFE,
-            Material.IRON_SWORD,
-            new WeaponAnimation(100400, 100401, 5, 100405, 100406, List.of(100402, 100403), List.of(100410, 100411, 100412, 100413, 100414, 100415, 100416), Collections.emptyList(), 1),
-            new WeaponStats(6.0, 1.5, 8, 1, 1, 0, 3.5, 1.0, 0.85, 3.0, 0.0),
-            new WeaponAds(true, 1, 0.0, 0.0, false),
-            new WeaponRecoil(0.0, 0.0, 0.0, 1.0),
-            new WeaponAudio("csgo.weapon.knife.slash", "csgo.weapon.knife.stance", "csgo.weapon.knife.stance", "csgo.weapon.knife.deploy", "", "", "", "csgo.weapon.knife.inspect", "", "csgo.weapon.knife.backstab", "item.shield.break")
-        );
-        saveWeapon(karambit);
-
-        WeaponDefinition tacticalAxe = new WeaponDefinition(
-            "tactical_axe",
-            "&8[&7CS:GO&8] &fTactical Axe",
-            WeaponType.AXE,
-            Material.STONE_AXE,
-            new WeaponAnimation(100500, 100501, 6, 100505, 100506, List.of(100502, 100503), List.of(100510, 100511, 100512, 100513, 100514), Collections.emptyList(), 2),
-            new WeaponStats(8.0, 1.5, 14, 1, 1, 0, 3.8, 0.95, 0.75, 1.5, 1.0),
-            new WeaponAds(true, 1, 0.0, 0.0, false),
-            new WeaponRecoil(0.0, 0.0, 0.0, 1.0),
-            new WeaponAudio("cookie_csg.axe.chop", "cookie_csg.axe.cleave", "cookie_csg.axe.cleave", "cookie_csg.axe.deploy", "", "", "", "cookie_csg.axe.inspect", "", "csgo.weapon.knife.backstab", "cookie_csg.axe.shield_break")
-        );
-        saveWeapon(tacticalAxe);
+    public int extractBundledDefaultModels(File pluginsFolder) {
+        int extracted = 0;
+        List<String> manifestEntries = new ArrayList<>();
+        try (InputStream manifestIn = openResourceStream("default_pack/manifest.txt")) {
+            if (manifestIn == null) {
+                return 0;
+            }
+            try (BufferedReader reader = new BufferedReader(new InputStreamReader(manifestIn, StandardCharsets.UTF_8))) {
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    String trimmed = line.trim();
+                    if (!trimmed.isEmpty()) {
+                        manifestEntries.add(trimmed);
+                    }
+                }
+            }
+        } catch (IOException e) {
+            return 0;
+        }
+        if (manifestEntries.isEmpty()) {
+            return 0;
+        }
+        List<File> targets = new ArrayList<>();
+        File pluginDataDir = plugin != null ? plugin.getDataFolder() : weaponsFolder.getParentFile();
+        if (pluginDataDir != null) {
+            File localDefaultPack = new File(pluginDataDir, "default-pack");
+            File localMarker = new File(localDefaultPack, "ItemsAdder/contents/cookie_csg/configs/weapons.yml");
+            if (!localMarker.exists()) {
+                targets.add(localDefaultPack);
+            }
+        }
+        if (pluginsFolder != null) {
+            File iaDir = new File(pluginsFolder, "ItemsAdder");
+            File iaMarker = new File(iaDir, "contents/cookie_csg/configs/weapons.yml");
+            if (iaDir.isDirectory() && !iaMarker.exists()) {
+                targets.add(pluginsFolder);
+            }
+        }
+        for (File targetRoot : targets) {
+            for (String relPath : manifestEntries) {
+                try (InputStream assetIn = openResourceStream("default_pack/" + relPath)) {
+                    if (assetIn == null) {
+                        continue;
+                    }
+                    File outFile = new File(targetRoot, relPath);
+                    File parent = outFile.getParentFile();
+                    if (parent != null && !parent.exists()) {
+                        parent.mkdirs();
+                    }
+                    Files.copy(assetIn, outFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
+                    extracted++;
+                } catch (IOException ignored) {
+                }
+            }
+        }
+        return extracted;
     }
 
     public ItemStack buildItemStack(WeaponDefinition weapon) {
@@ -512,9 +580,16 @@ public class WeaponManager {
         ItemMeta meta = item.getItemMeta();
         if (meta != null) {
             meta.setDisplayName(ChatColor.translateAlternateColorCodes('&', weapon.getDisplayName()));
-            int idleCmd = weapon.getAnimation().getIdleModelData();
-            meta.setCustomModelData(idleCmd);
-            meta.setItemModel(resolveItemModel(weapon, idleCmd));
+            if (!weapon.isDefaultMode() && weapon.getAnimation() != null) {
+                int idleCmd = weapon.getAnimation().getIdleModelData();
+                if (idleCmd > 0) {
+                    meta.setCustomModelData(idleCmd);
+                }
+                NamespacedKey resolvedModel = resolveItemModel(weapon, idleCmd);
+                if (resolvedModel != null) {
+                    meta.setItemModel(resolvedModel);
+                }
+            }
             if (mat.getMaxDurability() > 0) {
                 meta.setUnbreakable(true);
                 meta.addItemFlags(ItemFlag.HIDE_UNBREAKABLE);
@@ -524,6 +599,7 @@ public class WeaponManager {
 
             List<String> lore = new ArrayList<>();
             lore.add(ChatColor.DARK_GRAY + "------------------------");
+            lore.add(ChatColor.GRAY + "Mode: " + (weapon.isDefaultMode() ? ChatColor.YELLOW + "default" : ChatColor.AQUA + "model"));
             lore.add(ChatColor.GRAY + "Type: " + ChatColor.WHITE + weapon.getType().name());
             lore.add(ChatColor.GRAY + "Damage: " + ChatColor.RED + weapon.getStats().getDamage());
             if (weapon.getType().isGun()) {
@@ -545,13 +621,24 @@ public class WeaponManager {
     }
 
     public NamespacedKey resolveItemModel(WeaponDefinition weapon, int modelData) {
-        if (weapon == null) {
+        if (weapon == null || weapon.isDefaultMode()) {
             return null;
         }
-        String key = weapon.getAnimation() != null
-            ? weapon.getAnimation().resolveModelKey(weapon.getId(), weapon.getType(), modelData)
+        WeaponAnimation anim = weapon.getAnimation();
+        if (anim != null && anim.isItemModelDisabled()) {
+            return null;
+        }
+        if (modelData <= 0 && (anim == null || !anim.hasCustomVisuals())) {
+            return null;
+        }
+        String ns = (anim != null && anim.getItemModelNamespace() != null && !anim.getItemModelNamespace().isBlank())
+            ? anim.getItemModelNamespace().trim().toLowerCase()
+            : "cookie_csg";
+        String key = anim != null
+            ? anim.resolveModelKey(weapon.getId(), weapon.getType(), modelData)
             : weapon.getId().toLowerCase();
-        NamespacedKey cached = modelKeyCache.get(key);
+        String cacheKey = ns + "|" + key;
+        NamespacedKey cached = modelKeyCache.get(cacheKey);
         if (cached != null) {
             return cached;
         }
@@ -560,7 +647,7 @@ public class WeaponManager {
         if (lookup.contains(":")) {
             NamespacedKey parsed = NamespacedKey.fromString(lookup);
             if (parsed != null) {
-                modelKeyCache.putIfAbsent(key, parsed);
+                modelKeyCache.putIfAbsent(cacheKey, parsed);
                 return parsed;
             }
             lookup = lookup.substring(lookup.indexOf(':') + 1);
@@ -568,8 +655,8 @@ public class WeaponManager {
         if (lookup.startsWith("item/")) {
             lookup = lookup.substring("item/".length());
         }
-        resolved = new NamespacedKey("cookie_csg", lookup.toLowerCase());
-        modelKeyCache.putIfAbsent(key, resolved);
+        resolved = new NamespacedKey(ns, lookup.toLowerCase());
+        modelKeyCache.putIfAbsent(cacheKey, resolved);
         return resolved;
     }
 
@@ -585,25 +672,30 @@ public class WeaponManager {
         if (itemWeaponId == null || !itemWeaponId.equalsIgnoreCase(weapon.getId())) {
             return;
         }
-        NamespacedKey itemModelKey = resolveItemModel(weapon, modelData);
+        int effectiveCmd = weapon.isDefaultMode() ? 0 : modelData;
+        NamespacedKey itemModelKey = weapon.isDefaultMode() ? null : resolveItemModel(weapon, effectiveCmd);
         ItemMeta meta = item.getItemMeta();
         if (meta == null) {
             return;
         }
         PersistentDataContainer pdc = meta.getPersistentDataContainer();
         boolean pdcMissing = !pdc.has(this.weaponIdKey, PersistentDataType.STRING);
-        boolean cmdMatches = modelData <= 0 || (meta.hasCustomModelData() && meta.getCustomModelData() == modelData);
-        boolean modelMatches = itemModelKey == null || (meta.hasItemModel() && itemModelKey.equals(meta.getItemModel()));
+        boolean cmdMatches = effectiveCmd <= 0
+            ? !meta.hasCustomModelData()
+            : (meta.hasCustomModelData() && meta.getCustomModelData() == effectiveCmd);
+        boolean modelMatches = itemModelKey == null
+            ? !meta.hasItemModel()
+            : (meta.hasItemModel() && itemModelKey.equals(meta.getItemModel()));
         boolean hasCooldownMod = hasNoAttackCooldown(meta);
         if (cmdMatches && modelMatches && !pdcMissing && hasCooldownMod) {
             return;
         }
-        if (modelData > 0) {
-            meta.setCustomModelData(modelData);
+        if (effectiveCmd > 0) {
+            meta.setCustomModelData(effectiveCmd);
+        } else if (meta.hasCustomModelData()) {
+            meta.setCustomModelData(null);
         }
-        if (itemModelKey != null) {
-            meta.setItemModel(itemModelKey);
-        }
+        meta.setItemModel(itemModelKey);
         if (pdcMissing) {
             pdc.set(this.weaponIdKey, PersistentDataType.STRING, weapon.getId());
         }
@@ -788,6 +880,10 @@ public class WeaponManager {
     }
 
     public WeaponDefinition createWeapon(String id, WeaponType type) {
+        return createWeapon(id, type, WeaponMode.MODEL);
+    }
+
+    public WeaponDefinition createWeapon(String id, WeaponType type, WeaponMode mode) {
         if (id == null || type == null) {
             return null;
         }
@@ -799,6 +895,7 @@ public class WeaponManager {
         WeaponDefinition def = new WeaponDefinition();
         def.setId(id.toLowerCase());
         def.setDisplayName(ChatColor.WHITE + id);
+        def.setMode(mode != null ? mode : WeaponMode.MODEL);
         def.setType(type);
         def.setMaterial(defaultMat);
         def.getStats().setDamage(type.getDefaultDamage());

@@ -5,7 +5,7 @@
 
     <groupId>com.cookie.csg</groupId>
     <artifactId>CookieCSG</artifactId>
-    <version>1.0</version>
+    <version>1.2</version>
     <packaging>jar</packaging>
 
     <name>CookieCSG</name>
@@ -40,12 +40,25 @@
     </dependencies>
 
     <build>
-        <finalName>CookieCSG-1.0</finalName>
+        <finalName>CookieCSG-1.2</finalName>
         <defaultGoal>clean package</defaultGoal>
         <resources>
             <resource>
                 <directory>src/main/resources</directory>
                 <filtering>true</filtering>
+                <includes>
+                    <include>plugin.yml</include>
+                    <include>config.yml</include>
+                </includes>
+            </resource>
+            <resource>
+                <directory>src/main/resources</directory>
+                <filtering>false</filtering>
+                <excludes>
+                    <exclude>plugin.yml</exclude>
+                    <exclude>config.yml</exclude>
+                    <exclude>resourcepack/**</exclude>
+                </excludes>
             </resource>
         </resources>
         <plugins>
@@ -57,6 +70,16 @@
                     <source>21</source>
                     <target>21</target>
                     <release>21</release>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <version>3.4.2</version>
+                <configuration>
+                    <excludes>
+                        <exclude>resourcepack/**</exclude>
+                    </excludes>
                 </configuration>
             </plugin>
         </plugins>

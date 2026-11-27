@@ -2,14 +2,17 @@ package com.cookie.csg.engine;
 
 import com.cookie.csg.CookieCSGPlugin;
 import com.cookie.csg.command.CSGCommand;
+import com.cookie.csg.gui.AnimationFramesMenu;
 import com.cookie.csg.gui.GuiManager;
 import com.cookie.csg.gui.MainMenu;
+import com.cookie.csg.gui.StatsEditorMenu;
 import com.cookie.csg.gui.WeaponEditorMenu;
 import com.cookie.csg.listener.WeaponInteractionListener;
 import com.cookie.csg.manager.WeaponManager;
 import com.cookie.csg.model.FireMode;
 import com.cookie.csg.model.WeaponAnimation;
 import com.cookie.csg.model.WeaponDefinition;
+import com.cookie.csg.model.WeaponMode;
 import com.cookie.csg.model.WeaponType;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Multimap;
@@ -74,6 +77,7 @@ import org.bukkit.scheduler.BukkitScheduler;
 import org.bukkit.scheduler.BukkitTask;
 import org.bukkit.util.RayTraceResult;
 import org.bukkit.util.Vector;
+import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -83,6 +87,7 @@ import sun.misc.Unsafe;
 import java.io.File;
 import java.lang.reflect.Field;
 import java.lang.reflect.Proxy;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -113,6 +118,15 @@ public class AnimationSimulatorTest {
         "combat_knife", "tactical_axe", "cobra_vanguard",
         "csgo_dark_star", "csgo_m4a1", "csgo_m249"
     );
+
+    private static final File PACK1_WEAPONS_DIR = new File("CookieCSG_DONE/Pack 1/CookieCSG/weapons");
+
+    private static void assumePack1() {
+        Assumptions.assumeTrue(PACK1_WEAPONS_DIR.isDirectory(), "Pack 1 external assets not present");
+    }
+
+    @TempDir
+    File standaloneSimDir;
 
     private static FakeScheduler sharedScheduler;
     private static Map<UUID, Player> onlinePlayers;
@@ -392,7 +406,8 @@ public class AnimationSimulatorTest {
 
         plugin = (CookieCSGPlugin) unsafe.allocateInstance(CookieCSGPlugin.class);
 
-        setField(plugin, "weaponManager", new WeaponManager(new File("CookieCSG_DONE/Pack 1/CookieCSG/weapons")));
+        File initialWeaponsDir = PACK1_WEAPONS_DIR.isDirectory() ? PACK1_WEAPONS_DIR : new File(standaloneSimDir, "weapons");
+        setField(plugin, "weaponManager", new WeaponManager(initialWeaponsDir));
         plugin.getWeaponManager().loadWeapons();
 
         adsManager = new AdsManager(plugin);
@@ -425,6 +440,7 @@ public class AnimationSimulatorTest {
 
     @Test
     void testAll17WeaponsLoaded() {
+        assumePack1();
         assertEquals(18, weaponManager.getWeapons().size(), "Expected 18 weapons loaded from CookieCSG_DONE/Pack 1/CookieCSG/weapons");
         for (String id : ALL_18_WEAPONS) {
             assertNotNull(weaponManager.getWeapon(id), "Missing weapon definition: " + id);
@@ -433,6 +449,7 @@ public class AnimationSimulatorTest {
 
     @Test
     void testCsgGiveSetsItemModelAndCmdAll17() {
+        assumePack1();
         for (String id : ALL_18_WEAPONS) {
             setUpQuietly();
             WeaponDefinition weapon = weaponManager.getWeapon(id);
@@ -448,6 +465,7 @@ public class AnimationSimulatorTest {
 
     @Test
     void testItemsAdderItemWithoutPdcRecognizedAndDeploysAll17() {
+        assumePack1();
         for (String id : ALL_18_WEAPONS) {
             setUpQuietly();
             WeaponDefinition weapon = weaponManager.getWeapon(id);
@@ -498,6 +516,7 @@ public class AnimationSimulatorTest {
 
     @Test
     void testInspectDurationAndFrameProgressionAll17() {
+        assumePack1();
         for (String id : ALL_18_WEAPONS) {
             setUpQuietly();
             WeaponDefinition weapon = weaponManager.getWeapon(id);
@@ -543,6 +562,7 @@ public class AnimationSimulatorTest {
 
     @Test
     void testInspectSecondPressFCancelsBackToIdleAll17() {
+        assumePack1();
         for (String id : ALL_18_WEAPONS) {
             setUpQuietly();
             WeaponDefinition weapon = weaponManager.getWeapon(id);
@@ -566,6 +586,7 @@ public class AnimationSimulatorTest {
 
     @Test
     void testInspectInterruptLeftClickShootAndCooldownNeverFreezeAll17() {
+        assumePack1();
         for (String id : ALL_18_WEAPONS) {
             WeaponDefinition weapon = weaponManager.getWeapon(id);
 
@@ -605,6 +626,7 @@ public class AnimationSimulatorTest {
 
     @Test
     void testInspectInterruptLeftClickEmptyClipNeverFreezeAllGuns() {
+        assumePack1();
         for (String id : ALL_18_WEAPONS) {
             WeaponDefinition weapon = weaponManager.getWeapon(id);
             if (!weapon.getType().isGun()) {
@@ -630,6 +652,7 @@ public class AnimationSimulatorTest {
 
     @Test
     void testInspectInterruptRightClickAdsOrMeleeNeverFreezeAll17() {
+        assumePack1();
         for (String id : ALL_18_WEAPONS) {
             WeaponDefinition weapon = weaponManager.getWeapon(id);
 
@@ -665,6 +688,7 @@ public class AnimationSimulatorTest {
 
     @Test
     void testInspectInterruptHotbarSwitchResetsPreviousSlotAll17() {
+        assumePack1();
         for (String id : ALL_18_WEAPONS) {
             WeaponDefinition weapon = weaponManager.getWeapon(id);
 
@@ -683,6 +707,7 @@ public class AnimationSimulatorTest {
 
     @Test
     void testRightClickAdsDoubleFireSingleTickAllGuns() {
+        assumePack1();
         for (String id : ALL_18_WEAPONS) {
             WeaponDefinition weapon = weaponManager.getWeapon(id);
             if (!weapon.getType().isGun() || !weapon.getAdsConfig().isEnabled()) {
@@ -772,6 +797,7 @@ public class AnimationSimulatorTest {
 
     @Test
     void testRound4MultiFrameFireReloadAndMeleeSequencesAll17() {
+        assumePack1();
         File itemsDir = new File("CookieCSG_DONE/Pack 1/ItemsAdder/contents/cookie_csg/resourcepack/assets/cookie_csg/items");
         File modelsDir = new File("CookieCSG_DONE/Pack 1/ItemsAdder/contents/cookie_csg/resourcepack/assets/cookie_csg/models/item");
 
@@ -936,6 +962,7 @@ public class AnimationSimulatorTest {
 
     @Test
     void testReloadFullClipWorksAllGuns() {
+        assumePack1();
         for (String id : ALL_18_WEAPONS) {
             WeaponDefinition weapon = weaponManager.getWeapon(id);
             if (!weapon.getType().isGun()) {
@@ -970,6 +997,7 @@ public class AnimationSimulatorTest {
 
     @Test
     void testReloadPartialAndEmptyClipAllGuns() {
+        assumePack1();
         for (String id : ALL_18_WEAPONS) {
             WeaponDefinition weapon = weaponManager.getWeapon(id);
             if (!weapon.getType().isGun()) {
@@ -1004,6 +1032,7 @@ public class AnimationSimulatorTest {
 
     @Test
     void testReloadMidInterruptNoOrphanSoundOrAmmoMutationAllGuns() {
+        assumePack1();
         for (String id : ALL_18_WEAPONS) {
             WeaponDefinition weapon = weaponManager.getWeapon(id);
             if (!weapon.getType().isGun()) {
@@ -1208,6 +1237,7 @@ public class AnimationSimulatorTest {
 
     @Test
     void testNoAttackCooldownModifierPresentAll17() {
+        assumePack1();
         NamespacedKey expectedKey = new NamespacedKey("cookiecsg", "no_attack_cooldown");
         for (String id : ALL_18_WEAPONS) {
             setUpQuietly();
@@ -1254,6 +1284,7 @@ public class AnimationSimulatorTest {
 
     @Test
     void testGunControlsDefaultAndLegacyToggle() {
+        assumePack1();
         YamlConfiguration configYaml = YamlConfiguration.loadConfiguration(new File("src/main/resources/config.yml"));
         assertFalse(configYaml.getBoolean("gun-controls.right-click-fire", true), "config.yml default gun-controls.right-click-fire must be false");
         assertTrue(configYaml.getBoolean("gun-controls.hold-to-ads", false), "config.yml default gun-controls.hold-to-ads must be true");
@@ -1340,6 +1371,7 @@ public class AnimationSimulatorTest {
 
     @Test
     void testDropQAllowsNormalItemDropAndCleansUpState() {
+        assumePack1();
         WeaponDefinition ak = weaponManager.getWeapon("ak47");
         ItemStack item = equipWeaponAtSlot0(ak);
         PlayerWeaponState st = animationEngine.getState(playerState.uuid);
@@ -1414,6 +1446,7 @@ public class AnimationSimulatorTest {
 
     @Test
     void testRightClickHoldAutoFillSpray() {
+        assumePack1();
         WeaponDefinition ak = weaponManager.getWeapon("ak47");
         equipWeaponAtSlot0(ak);
         PlayerWeaponState st = animationEngine.getState(playerState.uuid);
@@ -1455,6 +1488,7 @@ public class AnimationSimulatorTest {
 
     @Test
     void testPerWeaponClipAmmoIsolatedAcrossHotbarSwitches() {
+        assumePack1();
         WeaponDefinition ak = weaponManager.getWeapon("ak47");
         WeaponDefinition deagle = weaponManager.getWeapon("deagle");
         WeaponDefinition awp = weaponManager.getWeapon("awp");
@@ -1515,6 +1549,7 @@ public class AnimationSimulatorTest {
 
     @Test
     void testEntityDamageAndInteractEntitySingleTickDedup() {
+        assumePack1();
         WeaponDefinition ak = weaponManager.getWeapon("ak47");
         equipWeaponAtSlot0(ak);
         PlayerWeaponState st = animationEngine.getState(playerState.uuid);
@@ -1549,6 +1584,7 @@ public class AnimationSimulatorTest {
 
     @Test
     void testAdsFireNonCancellationAndRapidToggleAllGuns() {
+        assumePack1();
         for (String id : ALL_18_WEAPONS) {
             WeaponDefinition weapon = weaponManager.getWeapon(id);
             if (!weapon.getType().isGun() || !weapon.getAdsConfig().isEnabled()) {
@@ -1662,6 +1698,7 @@ public class AnimationSimulatorTest {
 
     @Test
     void testMeleeThreeAttackControlsAndComboAllMelee() {
+        assumePack1();
         List<String> meleeIds = List.of("combat_knife", "tactical_axe", "csgo_dark_star");
         for (String id : meleeIds) {
             WeaponDefinition weapon = weaponManager.getWeapon(id);
@@ -1768,6 +1805,7 @@ public class AnimationSimulatorTest {
 
     @Test
     void testInspectInterruptZeroIdleFlashStutterAll17() {
+        assumePack1();
         for (String id : ALL_18_WEAPONS) {
             WeaponDefinition weapon = weaponManager.getWeapon(id);
 
@@ -1814,7 +1852,7 @@ public class AnimationSimulatorTest {
 
         CSGCommand cmd = new CSGCommand(plugin);
         assertTrue(cmd.onCommand(sender, null, "csg", new String[]{"list"}));
-        assertTrue(messages.size() >= 18);
+        assertTrue(messages.size() >= weaponManager.getWeapons().size() + 1);
         String joined = String.join("\n", messages);
         assertTrue(joined.contains("§"));
         assertFalse(joined.contains("&6"));
@@ -1835,6 +1873,7 @@ public class AnimationSimulatorTest {
 
     @Test
     void testSwingSuppressionHasteLifecycleAndPreservesExistingHaste() {
+        assumePack1();
         WeaponDefinition ak = weaponManager.getWeapon("ak47");
         equipWeaponAtSlot0(ak);
 
@@ -1865,6 +1904,7 @@ public class AnimationSimulatorTest {
 
     @Test
     void testInspectAndReloadClearAdsSilentlyWithoutAdsOutFlash() {
+        assumePack1();
         WeaponDefinition ak = weaponManager.getWeapon("ak47");
         FakeItemStack tracked = equipTrackedWeaponAtSlot0(ak);
         int adsSettleTicks = Math.max(2, ak.getAnimation().getAdsInFrames().size() * Math.max(1, ak.getAnimation().getAdsTickRate()));
@@ -1900,6 +1940,7 @@ public class AnimationSimulatorTest {
 
     @Test
     void testCleanItemsAdderPackHas17WeaponsAndNoMinecraftSoundsJson() throws Exception {
+        assumePack1();
         File iaRoot = new File("CookieCSG_DONE/Pack 1/ItemsAdder/contents/cookie_csg");
         File weaponsYml = new File(iaRoot, "configs/weapons.yml");
         assertTrue(weaponsYml.exists(), "Missing trimmed ItemsAdder weapons.yml");
@@ -1924,6 +1965,7 @@ public class AnimationSimulatorTest {
 
     @Test
     void testShiftFReloadsGunsAndFInspectsAll17() {
+        assumePack1();
         for (String id : ALL_18_WEAPONS) {
             setUpQuietly();
             WeaponDefinition weapon = weaponManager.getWeapon(id);
@@ -1985,6 +2027,7 @@ public class AnimationSimulatorTest {
 
     @Test
     void testGunAndMeleeDamageNotCancelledByEntityDamageListener() {
+        assumePack1();
         WeaponDefinition ak = weaponManager.getWeapon("ak47");
         equipWeaponAtSlot0(ak);
         List<EntityDamageByEntityEvent> events = new ArrayList<>();
@@ -2029,6 +2072,7 @@ public class AnimationSimulatorTest {
 
     @Test
     void testShotgunPelletDamageAggregatedAndRapidFireBypassesNoDamageTicks() {
+        assumePack1();
         WeaponDefinition m870 = weaponManager.getWeapon("m870");
         assertNotNull(m870);
         equipWeaponAtSlot0(m870);
@@ -2047,6 +2091,7 @@ public class AnimationSimulatorTest {
 
     @Test
     void testDoubleShiftCyclesFireModesAndRespectsSingleModeWeapons() {
+        assumePack1();
         WeaponDefinition m4a1 = weaponManager.getWeapon("csgo_m4a1");
         equipWeaponAtSlot0(m4a1);
         PlayerWeaponState st = animationEngine.getState(playerState.uuid);
@@ -2075,6 +2120,7 @@ public class AnimationSimulatorTest {
 
     @Test
     void testSemiAutoFiresSingleRoundAndAutoFiresContinuously() {
+        assumePack1();
         WeaponDefinition m4a1 = weaponManager.getWeapon("csgo_m4a1");
         equipWeaponAtSlot0(m4a1);
         PlayerWeaponState st = animationEngine.getState(playerState.uuid);
@@ -2122,6 +2168,7 @@ public class AnimationSimulatorTest {
 
     @Test
     void testM249AliasTabCompleteAndCmdResolution() {
+        assumePack1();
         WeaponDefinition m249 = weaponManager.getWeapon("csgo_m249");
         assertNotNull(m249);
         assertEquals(m249, weaponManager.getWeapon("m249"));
@@ -2141,6 +2188,7 @@ public class AnimationSimulatorTest {
 
     @Test
     void testAdsOpticalZoomLevelsAndWalkSpeedCompensation() {
+        assumePack1();
         WeaponDefinition aug = weaponManager.getWeapon("aug");
         WeaponDefinition awp = weaponManager.getWeapon("awp");
         WeaponDefinition kar98 = weaponManager.getWeapon("kar98");
@@ -2275,7 +2323,223 @@ public class AnimationSimulatorTest {
     }
 
     @Test
+    void testCreateCommandAndExtendedGuiEditors(@TempDir File tempSimDir) throws Exception {
+        WeaponManager simManager = new WeaponManager(tempSimDir);
+        setField(plugin, "weaponManager", simManager);
+        weaponManager = simManager;
+
+        CSGCommand cmd = new CSGCommand(plugin);
+        assertTrue(cmd.onCommand(player, null, "csg", new String[]{"create", "user_pistol", "PISTOL"}));
+        WeaponDefinition created = weaponManager.getWeapon("user_pistol");
+        assertNotNull(created);
+        assertEquals(WeaponType.PISTOL, created.getType());
+        assertEquals(WeaponMode.DEFAULT, created.getMode());
+        String defaultYamlRaw = Files.readString(new File(tempSimDir, "user_pistol.yml").toPath());
+        assertTrue(defaultYamlRaw.contains("mode: default"));
+        assertFalse(defaultYamlRaw.contains("animation:"));
+        assertNotNull(playerState.openedInventory);
+        assertTrue(playerState.openedInventory.getHolder() instanceof WeaponEditorMenu);
+
+        WeaponEditorMenu editor = (WeaponEditorMenu) playerState.openedInventory.getHolder();
+        InventoryView editorView = createMenuView(editor.getInventory());
+        editor.handleClick(new InventoryClickEvent(editorView, InventoryType.SlotType.CONTAINER, 21, ClickType.LEFT, InventoryAction.PICKUP_ALL));
+        assertSame(editor, playerState.openedInventory.getHolder(), "DEFAULT mode must block AnimationFramesMenu on Slot 21");
+
+        editor.handleClick(new InventoryClickEvent(editorView, InventoryType.SlotType.CONTAINER, 20, ClickType.LEFT, InventoryAction.PICKUP_ALL));
+        assertEquals(WeaponMode.MODEL, created.getMode());
+
+        editor.handleClick(new InventoryClickEvent(editorView, InventoryType.SlotType.CONTAINER, 31, ClickType.LEFT, InventoryAction.PICKUP_ALL));
+        assertTrue(created.getAnimation().isItemModelDisabled());
+        editor.handleClick(new InventoryClickEvent(editorView, InventoryType.SlotType.CONTAINER, 31, ClickType.LEFT, InventoryAction.PICKUP_ALL));
+        assertFalse(created.getAnimation().isItemModelDisabled());
+
+        simManager.saveWeapon(created);
+        String toggledYamlRaw = Files.readString(new File(tempSimDir, "user_pistol.yml").toPath());
+        assertTrue(toggledYamlRaw.contains("mode: model"));
+        assertTrue(toggledYamlRaw.contains("animation:"));
+
+        StatsEditorMenu statsMenu = new StatsEditorMenu(plugin, player, created);
+        InventoryView statsView = createMenuView(statsMenu.getInventory());
+        double origVert = created.getRecoil().getVertical();
+        statsMenu.handleClick(new InventoryClickEvent(statsView, InventoryType.SlotType.CONTAINER, 19, ClickType.LEFT, InventoryAction.PICKUP_ALL));
+        assertTrue(created.getRecoil().getVertical() > origVert);
+        statsMenu.handleClick(new InventoryClickEvent(statsView, InventoryType.SlotType.CONTAINER, 23, ClickType.LEFT, InventoryAction.PICKUP_ALL));
+        assertFalse(created.getStats().getFireModes().isEmpty());
+
+        AnimationFramesMenu framesMenu = new AnimationFramesMenu(plugin, player, created);
+        InventoryView framesView = createMenuView(framesMenu.getInventory());
+        framesMenu.handleClick(new InventoryClickEvent(framesView, InventoryType.SlotType.CONTAINER, 28, ClickType.SHIFT_LEFT, InventoryAction.MOVE_TO_OTHER_INVENTORY));
+        assertEquals(5, created.getAnimation().getFireFrames().size());
+        framesMenu.handleClick(new InventoryClickEvent(framesView, InventoryType.SlotType.CONTAINER, 11, ClickType.LEFT, InventoryAction.PICKUP_ALL));
+        assertEquals(1, created.getAnimation().getDeployFrames().size());
+        framesMenu.handleClick(new InventoryClickEvent(framesView, InventoryType.SlotType.CONTAINER, 15, ClickType.LEFT, InventoryAction.PICKUP_ALL));
+        assertEquals(1, created.getAnimation().getAdsInFrames().size());
+
+        assertTrue(cmd.onCommand(player, null, "csg", new String[]{"create", "custom_dagger", "KNIFE", "model"}));
+        WeaponDefinition dagger = weaponManager.getWeapon("custom_dagger");
+        assertNotNull(dagger);
+        assertEquals(WeaponMode.MODEL, dagger.getMode());
+    }
+
+    @Test
+    void testNoModelWeaponFullCombatLoopWorksWithoutModels(@TempDir File tempSimDir) throws Exception {
+        WeaponManager simManager = new WeaponManager(tempSimDir);
+        setField(plugin, "weaponManager", simManager);
+        weaponManager = simManager;
+
+        WeaponDefinition vanilla = simManager.createWeapon("vanilla_sidearm", WeaponType.PISTOL, WeaponMode.DEFAULT);
+        assertEquals(0, vanilla.getAnimation().getIdleModelData());
+        ItemStack built = simManager.buildItemStack(vanilla);
+        assertNotNull(built);
+        assertNull(getItemModel(built), "Vanilla no-model weapon must not set missing cookie_csg ItemModel");
+        assertEquals(-1, getCmd(built), "Vanilla no-model weapon must not set CustomModelData");
+        assertTrue(simManager.isWeapon(built));
+
+        playerState.inventorySlots[0] = built;
+        playerState.inventorySlots[1] = new FakeItemStack(Material.AIR, 0);
+        playerState.heldSlot = 1;
+        switchHotbarSlot(1, 0);
+        sharedScheduler.advanceTicks(8);
+
+        PlayerWeaponState st = animationEngine.getState(playerState.uuid);
+        int startClip = st.getAmmoInClip();
+        assertTrue(startClip > 0);
+        st.setLastFireTime(0L);
+        fireInteract(Action.LEFT_CLICK_AIR, EquipmentSlot.HAND);
+        assertEquals(startClip - 1, st.getAmmoInClip());
+        assertNull(getItemModel(built));
+
+        fireInteract(Action.RIGHT_CLICK_AIR, EquipmentSlot.HAND);
+        assertTrue(adsManager.isAiming(player));
+        fireShiftFReload();
+        sharedScheduler.advanceTicks(45);
+        assertEquals(vanilla.getStats().getClipSize(), st.getAmmoInClip());
+        assertNull(getItemModel(built));
+    }
+
+    @Test
+    void testDefaultModeNoInspectNoAnimationZoomOnlyAds(@TempDir File tempSimDir) throws Exception {
+        WeaponManager simManager = new WeaponManager(tempSimDir);
+        setField(plugin, "weaponManager", simManager);
+        weaponManager = simManager;
+
+        WeaponDefinition zoomPistol = simManager.createWeapon("zoom_pistol", WeaponType.PISTOL, WeaponMode.DEFAULT);
+        zoomPistol.getAds().setEnabled(true);
+        zoomPistol.getAds().setZoomLevel(2);
+        simManager.saveWeapon(zoomPistol);
+
+        String savedRaw = Files.readString(new File(tempSimDir, "zoom_pistol.yml").toPath());
+        assertTrue(savedRaw.contains("mode: default"));
+        assertFalse(savedRaw.contains("animation:"));
+
+        simManager.loadWeapons();
+        WeaponDefinition reloaded = simManager.getWeapon("zoom_pistol");
+        assertNotNull(reloaded);
+        assertTrue(reloaded.isDefaultMode());
+
+        ItemStack built = simManager.buildItemStack(reloaded);
+        FakeItemStack tracked = new FakeItemStack(built.getType(), built.getAmount());
+        tracked.setItemMeta(built.getItemMeta());
+        tracked.cmdWriteLog.clear();
+        playerState.inventorySlots[0] = tracked;
+        playerState.inventorySlots[1] = new FakeItemStack(Material.AIR, 0);
+        playerState.heldSlot = 1;
+
+        switchHotbarSlot(1, 0);
+        PlayerWeaponState st = animationEngine.getState(playerState.uuid);
+        assertEquals(WeaponState.IDLE, st.getCurrentState(), "DEFAULT mode must enter IDLE immediately without deploy frame delay");
+        assertTrue(tracked.cmdWriteLog.isEmpty(), "DEFAULT mode must not write CMD animation frames on deploy");
+
+        playerState.playedSounds.clear();
+        fireSwapHand();
+        sharedScheduler.advanceTicks(5);
+        assertEquals(WeaponState.IDLE, st.getCurrentState(), "DEFAULT mode must ignore F inspect");
+        assertTrue(tracked.cmdWriteLog.isEmpty(), "DEFAULT mode must not write CMD frames on inspect attempt");
+
+        playerState.walkSpeed = 0.2f;
+        playerState.moveSpeedBase = 0.1;
+        playerState.moveSpeedMods.clear();
+        fireInteract(Action.RIGHT_CLICK_AIR, EquipmentSlot.HAND);
+        assertTrue(adsManager.isAiming(player));
+        assertEquals(WeaponState.AIMING_ADS, st.getCurrentState());
+        double fovRatio = ((playerState.moveSpeedAttr.getValue() / (playerState.walkSpeed / 2.0)) + 1.0) / 2.0;
+        assertTrue(fovRatio < 1.0, "DEFAULT mode right-click must still zoom player FOV");
+        assertTrue(tracked.cmdWriteLog.isEmpty(), "DEFAULT mode ADS zoom must not write model frames");
+
+        st.setLastFireTime(0L);
+        int beforeFireClip = st.getAmmoInClip();
+        fireInteract(Action.LEFT_CLICK_AIR, EquipmentSlot.HAND);
+        assertEquals(beforeFireClip - 1, st.getAmmoInClip());
+        assertTrue(tracked.cmdWriteLog.isEmpty(), "DEFAULT mode fire must not write model frames");
+
+        fireShiftFReload();
+        assertFalse(adsManager.isAiming(player));
+        assertEquals(WeaponState.RELOADING, st.getCurrentState());
+        sharedScheduler.advanceTicks(reloaded.getStats().getReloadTicks() + 2);
+        assertEquals(reloaded.getStats().getClipSize(), st.getAmmoInClip());
+        assertEquals(WeaponState.IDLE, st.getCurrentState());
+        assertTrue(tracked.cmdWriteLog.isEmpty(), "DEFAULT mode reload must not write model frames");
+    }
+
+    @Test
+    void testBundledDefaultWeaponsFullSimulation(@TempDir File tempSimDir) throws Exception {
+        WeaponManager bundledManager = new WeaponManager(new File(tempSimDir, "weapons"));
+        bundledManager.loadWeapons();
+        setField(plugin, "weaponManager", bundledManager);
+        weaponManager = bundledManager;
+
+        assertEquals(2, bundledManager.getWeapons().size());
+        WeaponDefinition p1911 = bundledManager.getWeapon("p1911");
+        WeaponDefinition bayonet = bundledManager.getWeapon("bayonet");
+        assertNotNull(p1911);
+        assertNotNull(bayonet);
+        assertTrue(p1911.isModelMode());
+        assertTrue(bayonet.isModelMode());
+
+        FakeItemStack pistolItem = equipTrackedWeaponAtSlot0(p1911);
+        PlayerWeaponState st = animationEngine.getState(playerState.uuid);
+        assertEquals(7, st.getAmmoInClip());
+        assertTrue(!pistolItem.cmdWriteLog.isEmpty());
+        st.setLastFireTime(0L);
+        fireInteract(Action.LEFT_CLICK_AIR, EquipmentSlot.HAND);
+        assertEquals(6, st.getAmmoInClip());
+
+        fireInteract(Action.RIGHT_CLICK_AIR, EquipmentSlot.HAND);
+        assertTrue(adsManager.isAiming(player));
+        fireSwapHand();
+        assertEquals(WeaponState.INSPECTING, st.getCurrentState());
+        fireShiftFReload();
+        assertEquals(WeaponState.RELOADING, st.getCurrentState());
+        sharedScheduler.advanceTicks(p1911.getStats().getReloadTicks() + 2);
+        assertEquals(7, st.getAmmoInClip());
+
+        equipTrackedWeaponAtSlot0(bayonet);
+        fireSwapHand();
+        assertEquals(WeaponState.INSPECTING, st.getCurrentState());
+        fireInteract(Action.LEFT_CLICK_AIR, EquipmentSlot.HAND);
+        assertNotEquals(WeaponState.INSPECTING, st.getCurrentState());
+    }
+
+    private InventoryView createMenuView(Inventory topInv) {
+        return (InventoryView) Proxy.newProxyInstance(
+            AnimationSimulatorTest.class.getClassLoader(),
+            new Class<?>[]{InventoryView.class},
+            (p, method, args) -> switch (method.getName()) {
+                case "getTopInventory" -> topInv;
+                case "getBottomInventory" -> playerState.inventory;
+                case "getPlayer" -> player;
+                case "getInventory" -> (args != null && args.length == 1 && (int) args[0] < 54) ? topInv : playerState.inventory;
+                case "getSlotType" -> InventoryType.SlotType.CONTAINER;
+                case "convertSlot" -> args != null && args.length == 1 ? (int) args[0] : 0;
+                case "getType" -> InventoryType.CHEST;
+                default -> defaultValue(method.getReturnType());
+            }
+        );
+    }
+
+    @Test
     void testRelativeRecoilNeverLocksPlayerMouseRotation() {
+        assumePack1();
         WeaponDefinition ak = weaponManager.getWeapon("ak47");
         assertNotNull(ak);
         equipWeaponAtSlot0(ak);
@@ -2329,6 +2593,7 @@ public class AnimationSimulatorTest {
 
     @Test
     void testHoldToAdsEntersMaintainsDuringFireAndReleasesOnTimeout() {
+        assumePack1();
         assertTrue(plugin.isHoldToAds());
         int holdTicks = Math.max(4, (int) Math.ceil(plugin.getHoldAdsReleaseMs() / 50.0));
 
@@ -2411,6 +2676,7 @@ public class AnimationSimulatorTest {
 
     @Test
     void testFireModesAutoAndSemiAutoDistinctBehavior() {
+        assumePack1();
         WeaponDefinition m4a1 = weaponManager.getWeapon("csgo_m4a1");
         assertNotNull(m4a1);
         equipWeaponAtSlot0(m4a1);

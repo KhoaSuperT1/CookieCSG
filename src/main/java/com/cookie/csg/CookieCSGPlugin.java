@@ -42,6 +42,7 @@ public class CookieCSGPlugin extends JavaPlugin {
 
         this.weaponManager = new WeaponManager(this);
         this.weaponManager.loadWeapons();
+        this.weaponManager.extractBundledDefaultModels(getDataFolder().getParentFile());
 
         this.adsManager = new AdsManager(this);
         this.recoilEngine = new RaycastRecoilEngine(this);

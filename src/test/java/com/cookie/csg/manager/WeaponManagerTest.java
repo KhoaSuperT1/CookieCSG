@@ -3,8 +3,10 @@ package com.cookie.csg.manager;
 import com.cookie.csg.model.FireMode;
 import com.cookie.csg.model.WeaponAnimation;
 import com.cookie.csg.model.WeaponDefinition;
+import com.cookie.csg.model.WeaponMode;
 import com.cookie.csg.model.WeaponType;
 import org.bukkit.Material;
+import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -32,44 +34,36 @@ public class WeaponManagerTest {
         WeaponManager manager = new WeaponManager(tempFolder);
         manager.loadWeapons();
 
-        assertEquals(5, manager.getWeapons().size());
+        assertEquals(2, manager.getWeapons().size());
 
-        WeaponDefinition ak47 = manager.getWeapon("ak47");
-        assertNotNull(ak47);
-        assertEquals("ak47", ak47.getId());
-        assertEquals(WeaponType.RIFLE, ak47.getType());
-        assertEquals(7.5, ak47.getStats().getDamage());
-        assertEquals(30, ak47.getStats().getClipSize());
-        assertEquals(6, ak47.getAnimation().getDeployTicks());
+        WeaponDefinition p1911 = manager.getWeapon("p1911");
+        assertNotNull(p1911);
+        assertEquals("p1911", p1911.getId());
+        assertEquals(WeaponMode.MODEL, p1911.getMode());
+        assertEquals(WeaponType.PISTOL, p1911.getType());
+        assertEquals(Material.IRON_HOE, p1911.getMaterial());
+        assertEquals(8.0, p1911.getStats().getDamage());
+        assertEquals(7, p1911.getStats().getClipSize());
+        assertEquals(240100, p1911.getAnimation().getIdleModelData());
+        assertEquals(15, p1911.getAnimation().getDeployTicks());
+        assertEquals(p1911, manager.getWeapon("m1911"));
+        assertEquals(p1911, manager.getWeapon("colt1911"));
 
-        WeaponDefinition awp = manager.getWeapon("awp");
-        assertNotNull(awp);
-        assertEquals(WeaponType.SNIPER, awp.getType());
-        assertEquals(20.0, awp.getStats().getDamage());
-        assertTrue(awp.getAds().isScopeOverlay());
-
-        WeaponDefinition deagle = manager.getWeapon("deagle");
-        assertNotNull(deagle);
-        assertEquals(WeaponType.PISTOL, deagle.getType());
-
-        WeaponDefinition karambit = manager.getWeapon("karambit");
-        assertNotNull(karambit);
-        assertEquals(WeaponType.KNIFE, karambit.getType());
-        assertEquals(3.0, karambit.getStats().getBackstabMultiplier());
-
-        WeaponDefinition axe = manager.getWeapon("tactical_axe");
-        assertNotNull(axe);
-        assertEquals(WeaponType.AXE, axe.getType());
-        assertEquals(Material.STONE_AXE, axe.getMaterial());
-        assertEquals(1.0, axe.getStats().getShieldBreakChance());
-        assertEquals("cookie_csg.axe.chop", axe.getAudio().getShoot());
-        assertEquals("cookie_csg.axe.cleave", axe.getAudio().getAdsIn());
-        assertEquals("cookie_csg.axe.shield_break", axe.getAudio().getShieldBreak());
+        WeaponDefinition bayonet = manager.getWeapon("bayonet");
+        assertNotNull(bayonet);
+        assertEquals("bayonet", bayonet.getId());
+        assertEquals(WeaponMode.MODEL, bayonet.getMode());
+        assertEquals(WeaponType.KNIFE, bayonet.getType());
+        assertEquals(Material.IRON_SWORD, bayonet.getMaterial());
+        assertEquals(7.0, bayonet.getStats().getDamage());
+        assertEquals(3.0, bayonet.getStats().getBackstabMultiplier());
+        assertEquals(240200, bayonet.getAnimation().getIdleModelData());
 
         WeaponManager reloadManager = new WeaponManager(tempFolder);
         reloadManager.loadWeapons();
-        assertEquals(5, reloadManager.getWeapons().size());
-        assertNotNull(reloadManager.getWeapon("ak47"));
+        assertEquals(2, reloadManager.getWeapons().size());
+        assertNotNull(reloadManager.getWeapon("p1911"));
+        assertNotNull(reloadManager.getWeapon("bayonet"));
     }
 
     @Test
@@ -99,7 +93,7 @@ public class WeaponManagerTest {
     @Test
     public void testLoadAllPluginWeapons() {
         File weaponsFolder = new File("CookieCSG_DONE/Pack 1/CookieCSG/weapons");
-        assertTrue(weaponsFolder.exists());
+        Assumptions.assumeTrue(weaponsFolder.exists(), "Pack 1 external assets not present");
 
         WeaponManager manager = new WeaponManager(weaponsFolder);
         manager.loadWeapons();
@@ -406,7 +400,7 @@ public class WeaponManagerTest {
     @Test
     public void testAllThreeDeploymentPacksLoadCleanly() {
         File doneRoot = new File("CookieCSG_DONE");
-        assertTrue(doneRoot.isDirectory(), "Missing CookieCSG_DONE directory");
+        Assumptions.assumeTrue(doneRoot.isDirectory(), "CookieCSG_DONE deployment packs not present");
         Map<String, Integer> expectedCounts = Map.of(
             "Pack 1", 18,
             "Pack 2", 16,
@@ -477,6 +471,198 @@ public class WeaponManagerTest {
                 }
             }
         }
+    }
+
+    @Test
+    public void testNoModelVanillaWeaponClearsItemModelAndCmd() {
+        WeaponManager manager = new WeaponManager(tempFolder);
+        WeaponDefinition vanillaPistol = manager.createWeapon("custom_glock", WeaponType.PISTOL);
+        assertNotNull(vanillaPistol);
+        assertEquals(0, vanillaPistol.getAnimation().getIdleModelData());
+        assertNull(manager.resolveItemModel(vanillaPistol, 0));
+    }
+
+    @Test
+    public void testItemModelDisabledYamlRoundTrip() {
+        WeaponManager manager = new WeaponManager(tempFolder);
+        WeaponDefinition custom = manager.createWeapon("user_gun", WeaponType.RIFLE);
+        custom.getAnimation().setIdleModelData(5001);
+        custom.getAnimation().setItemModelNamespace("none");
+        manager.saveWeapon(custom);
+
+        WeaponManager reloaded = new WeaponManager(tempFolder);
+        reloaded.loadWeapons();
+        WeaponDefinition loaded = reloaded.getWeapon("user_gun");
+        assertNotNull(loaded);
+        assertEquals("none", loaded.getAnimation().getItemModelNamespace());
+        assertTrue(loaded.getAnimation().isItemModelDisabled());
+        assertNull(reloaded.resolveItemModel(loaded, 5001));
+    }
+
+    @Test
+    public void testDefaultModeOmitsAnimationSectionAndModelModeIncludesIt() throws IOException {
+        WeaponManager manager = new WeaponManager(tempFolder);
+        WeaponDefinition defaultGun = manager.createWeapon("simple_glock", WeaponType.PISTOL, WeaponMode.DEFAULT);
+        assertNotNull(defaultGun);
+        assertTrue(defaultGun.isDefaultMode());
+        assertTrue(!defaultGun.isModelMode());
+
+        File defaultFile = new File(tempFolder, "simple_glock.yml");
+        assertTrue(defaultFile.isFile());
+        String defaultRaw = Files.readString(defaultFile.toPath());
+        assertTrue(defaultRaw.contains("mode: default"));
+        assertTrue(!defaultRaw.contains("animation:"), "DEFAULT mode YAML must not contain animation section");
+
+        WeaponDefinition modelGun = manager.createWeapon("custom_3d_rifle", WeaponType.RIFLE, WeaponMode.MODEL);
+        assertNotNull(modelGun);
+        assertTrue(modelGun.isModelMode());
+        File modelFile = new File(tempFolder, "custom_3d_rifle.yml");
+        assertTrue(modelFile.isFile());
+        String modelRaw = Files.readString(modelFile.toPath());
+        assertTrue(modelRaw.contains("mode: model"));
+        assertTrue(modelRaw.contains("animation:"), "MODEL mode YAML must contain animation section");
+
+        WeaponManager reloaded = new WeaponManager(tempFolder);
+        reloaded.loadWeapons();
+        assertTrue(reloaded.getWeapon("simple_glock").isDefaultMode());
+        assertTrue(reloaded.getWeapon("custom_3d_rifle").isModelMode());
+    }
+
+    @Test
+    public void testExtractBundledDefaultModelsWritesManifestFiles() {
+        File pluginsDir = new File(tempFolder, "plugins");
+        File weaponsDir = new File(pluginsDir, "CookieCSG/weapons");
+        File iaDir = new File(pluginsDir, "ItemsAdder");
+        assertTrue(iaDir.mkdirs());
+
+        WeaponManager manager = new WeaponManager(weaponsDir);
+        int extracted = manager.extractBundledDefaultModels(pluginsDir);
+        assertTrue(extracted > 0);
+        assertTrue(new File(pluginsDir, "CookieCSG/default-pack/ItemsAdder/contents/cookie_csg/configs/weapons.yml").isFile());
+        assertTrue(new File(iaDir, "contents/cookie_csg/configs/weapons.yml").isFile());
+        assertTrue(new File(iaDir, "contents/cookie_csg/resourcepack/assets/cookie_csg/items/p1911.json").isFile());
+        assertTrue(new File(iaDir, "contents/cookie_csg/resourcepack/assets/cookie_csg/items/bayonet.json").isFile());
+        assertTrue(new File(iaDir, "contents/cookie_csg/resourcepack/assets/cookie_csg/textures/item/p1911_icon.png").isFile());
+        assertTrue(new File(iaDir, "contents/cookie_csg/resourcepack/assets/cookie_csg/textures/item/bayonet_icon.png").isFile());
+
+        assertEquals(0, manager.extractBundledDefaultModels(pluginsDir));
+    }
+
+    @Test
+    public void testDefaultPackLoadedWithLodNoArmsAndHotbarIcons() throws IOException {
+        File doneRoot = new File("CookieCSG_DONE");
+        File doneDefault = new File(doneRoot, "Default");
+        File defaultDir = doneDefault.isDirectory() ? doneDefault : new File("Default");
+        Assumptions.assumeTrue(defaultDir.isDirectory(), "Default pack directory not present");
+
+        File weaponsDir = new File(defaultDir, "CookieCSG/weapons");
+        File rpAssets = new File(defaultDir, "ResourcePack/assets/cookie_csg");
+        File rpItems = new File(rpAssets, "items");
+        File rpModels = new File(rpAssets, "models/item");
+        File rpTex = new File(rpAssets, "textures/item");
+        File iaCookieCsg = new File(defaultDir, "ItemsAdder/contents/cookie_csg/resourcepack/assets/cookie_csg");
+        File iaItems = new File(iaCookieCsg, "items");
+        File iaModels = new File(iaCookieCsg, "models/item");
+        File iaTex = new File(iaCookieCsg, "textures/item");
+        assertTrue(weaponsDir.isDirectory());
+        assertTrue(iaItems.isDirectory());
+
+        assertTrue(new File(iaTex, "p1911_icon.png").isFile());
+        assertTrue(new File(iaTex, "bayonet_icon.png").isFile());
+        assertTrue(new File(iaModels, "p1911_icon.json").isFile());
+        assertTrue(new File(iaModels, "bayonet_icon.json").isFile());
+        assertTrue(!new File(iaModels, "tactical_arm.json").exists(), "Default pack must not contain arm model");
+        assertTrue(!new File(iaTex, "tactical_sleeve.png").exists(), "Default pack must not contain sleeve texture");
+
+        if (rpItems.isDirectory()) {
+            assertTrue(new File(defaultDir, "ResourcePack/pack.mcmeta").isFile());
+            assertTrue(new File(defaultDir, "ResourcePack/pack.png").isFile());
+            assertTrue(new File(defaultDir, "CookieCSG_Default_ResourcePack.zip").isFile());
+            assertTrue(new File(defaultDir, "ResourcePack/assets/minecraft/items/iron_hoe.json").isFile());
+            assertTrue(new File(defaultDir, "ResourcePack/assets/minecraft/items/iron_sword.json").isFile());
+            assertTrue(new File(rpTex, "p1911_icon.png").isFile());
+            assertTrue(new File(rpTex, "bayonet_icon.png").isFile());
+            assertTrue(new File(rpModels, "p1911_icon.json").isFile());
+            assertTrue(new File(rpModels, "bayonet_icon.json").isFile());
+            assertTrue(!new File(rpModels, "tactical_arm.json").exists(), "Default pack must not contain arm model");
+            assertTrue(!new File(rpTex, "tactical_sleeve.png").exists(), "Default pack must not contain sleeve texture");
+        }
+
+        WeaponManager defaultMgr = new WeaponManager(weaponsDir);
+        defaultMgr.loadWeapons();
+        assertEquals(2, defaultMgr.getWeapons().size());
+
+        WeaponDefinition p1911 = defaultMgr.getWeapon("p1911");
+        WeaponDefinition bayonet = defaultMgr.getWeapon("bayonet");
+        assertNotNull(p1911);
+        assertNotNull(bayonet);
+        assertEquals(WeaponMode.MODEL, p1911.getMode());
+        assertEquals(WeaponMode.MODEL, bayonet.getMode());
+        assertEquals(p1911, defaultMgr.getWeapon("m1911"));
+        assertEquals(p1911, defaultMgr.getWeapon("colt1911"));
+        assertEquals(WeaponType.PISTOL, p1911.getType());
+        assertEquals(WeaponType.KNIFE, bayonet.getType());
+        assertTrue(!p1911.getAnimation().getFireFrames().isEmpty());
+        assertTrue(!p1911.getAnimation().getInspectFrames().isEmpty());
+        assertTrue(!p1911.getAnimation().getReloadFrames().isEmpty());
+        assertTrue(!p1911.getAnimation().getAdsInFrames().isEmpty());
+        assertTrue(!bayonet.getAnimation().getFireFrames().isEmpty());
+        assertTrue(!bayonet.getAnimation().getInspectFrames().isEmpty());
+
+        Map<Material, Set<Integer>> existingCmds = new HashMap<>();
+        if (doneRoot.isDirectory()) {
+            for (String existingPack : List.of("Pack 1", "Pack 2", "Pack 3", "Cookieee")) {
+                File wf = new File(doneRoot, existingPack + "/CookieCSG/weapons");
+                if (!wf.isDirectory()) {
+                    continue;
+                }
+                WeaponManager mgr = new WeaponManager(wf);
+                mgr.loadWeapons();
+                for (WeaponDefinition d : mgr.getWeapons().values()) {
+                    Set<Integer> s = existingCmds.computeIfAbsent(d.getMaterial(), k -> new HashSet<>());
+                    collectAllCmds(d.getAnimation(), s);
+                }
+            }
+        }
+
+        for (WeaponDefinition def : defaultMgr.getWeapons().values()) {
+            Set<Integer> cmds = new HashSet<>();
+            collectAllCmds(def.getAnimation(), cmds);
+            Set<Integer> used = existingCmds.getOrDefault(def.getMaterial(), Set.of());
+            for (int c : cmds) {
+                assertTrue(!used.contains(c), "CMD collision with existing packs: " + c);
+                String key = def.getAnimation().resolveModelKey(def.getId(), def.getType(), c);
+                File iaJson = new File(iaItems, key + ".json");
+                assertTrue(iaJson.isFile(), "Missing IA item json: " + iaJson.getPath());
+                String content = Files.readString(iaJson.toPath());
+                assertTrue(content.contains("cookie_csg:item/" + def.getId() + "_icon"), "Missing GUI hotbar icon in " + key);
+                assertTrue(!content.contains("_ra_") && !content.contains("_la_"), "Arm reference found in " + key);
+                if (rpItems.isDirectory()) {
+                    File rpJson = new File(rpItems, key + ".json");
+                    assertTrue(rpJson.isFile(), "Missing RP item json: " + rpJson.getPath());
+                }
+            }
+        }
+    }
+
+    private void collectAllCmds(WeaponAnimation anim, Set<Integer> out) {
+        if (anim.getIdleModelData() > 0) out.add(anim.getIdleModelData());
+        if (anim.getDeployModelData() > 0) out.add(anim.getDeployModelData());
+        if (anim.getAdsModelData() > 0) out.add(anim.getAdsModelData());
+        if (anim.getAdsFireModelData() > 0) out.add(anim.getAdsFireModelData());
+        out.addAll(anim.getDeployFrames());
+        out.addAll(anim.getAdsInFrames());
+        out.addAll(anim.getAdsFireFrames());
+        out.addAll(anim.getAdsOutFrames());
+        out.addAll(anim.getFireFrames());
+        out.addAll(anim.getSlash2Frames());
+        out.addAll(anim.getHeavyFrames());
+        out.addAll(anim.getInspectFrames());
+        out.addAll(anim.getReloadFrames());
+        out.addAll(anim.getReloadTacticalFrames());
+        out.addAll(anim.getReloadIntroFrames());
+        out.addAll(anim.getReloadLoopFrames());
+        out.addAll(anim.getReloadEndFrames());
     }
 
     private void assertUniqueModel(Set<Integer> used, int modelData, String weaponId) {

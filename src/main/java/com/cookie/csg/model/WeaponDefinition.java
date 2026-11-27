@@ -6,6 +6,7 @@ public class WeaponDefinition {
 
     private String id;
     private String displayName;
+    private WeaponMode mode;
     private WeaponType type;
     private Material material;
     private WeaponAnimation animation;
@@ -15,6 +16,7 @@ public class WeaponDefinition {
     private WeaponAudio audio;
 
     public WeaponDefinition() {
+        this.mode = WeaponMode.MODEL;
         this.animation = new WeaponAnimation();
         this.stats = new WeaponStats();
         this.ads = new WeaponAds();
@@ -25,6 +27,7 @@ public class WeaponDefinition {
     public WeaponDefinition(String id, String displayName, WeaponType type, Material material, WeaponAnimation animation, WeaponStats stats, WeaponAds ads, WeaponRecoil recoil, WeaponAudio audio) {
         this.id = id;
         this.displayName = displayName;
+        this.mode = WeaponMode.MODEL;
         this.type = type;
         this.material = material;
         this.animation = animation != null ? animation : new WeaponAnimation();
@@ -48,6 +51,22 @@ public class WeaponDefinition {
 
     public void setDisplayName(String displayName) {
         this.displayName = displayName;
+    }
+
+    public WeaponMode getMode() {
+        return mode != null ? mode : WeaponMode.MODEL;
+    }
+
+    public void setMode(WeaponMode mode) {
+        this.mode = mode != null ? mode : WeaponMode.MODEL;
+    }
+
+    public boolean isDefaultMode() {
+        return getMode() == WeaponMode.DEFAULT;
+    }
+
+    public boolean isModelMode() {
+        return getMode() == WeaponMode.MODEL;
     }
 
     public WeaponType getType() {

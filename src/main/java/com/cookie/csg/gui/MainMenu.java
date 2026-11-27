@@ -6,6 +6,7 @@ import com.cookie.csg.model.WeaponType;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
+import org.bukkit.NamespacedKey;
 import org.bukkit.Sound;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.InventoryClickEvent;
@@ -95,10 +96,14 @@ public class MainMenu implements InventoryHolder {
             if (modelData > 0) {
                 meta.setCustomModelData(modelData);
             }
-            meta.setItemModel(plugin.getWeaponManager().resolveItemModel(weapon, modelData));
+            NamespacedKey resolvedModel = plugin.getWeaponManager().resolveItemModel(weapon, modelData);
+            if (resolvedModel != null) {
+                meta.setItemModel(resolvedModel);
+            }
             meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES);
             List<String> lore = new ArrayList<>();
             lore.add(ChatColor.GRAY + "ID: " + ChatColor.WHITE + weapon.getId());
+            lore.add(ChatColor.GRAY + "Mode: " + (weapon.isDefaultMode() ? ChatColor.YELLOW + "default" : ChatColor.AQUA + "model"));
             lore.add(ChatColor.GRAY + "Type: " + ChatColor.YELLOW + (weapon.getType() != null ? weapon.getType().name() : "RIFLE"));
             if (weapon.getStats() != null) {
                 lore.add(ChatColor.GRAY + "Damage: " + ChatColor.RED + weapon.getStats().getDamage());

@@ -1,0 +1,87 @@
+{
+  "csgo.weapon.aim.in": {
+    "sounds": [
+      "cookie_csg:shared/aim_in"
+    ]
+  },
+  "csgo.weapon.aim.out": {
+    "sounds": [
+      "cookie_csg:shared/aim_out"
+    ]
+  },
+  "csgo.weapon.bayonet.backstab": {
+    "sounds": [
+      "cookie_csg:bayonet/knife_push_attack1_heavy_01"
+    ]
+  },
+  "csgo.weapon.bayonet.deploy": {
+    "sounds": [
+      "cookie_csg:bayonet/knife_deploy1"
+    ]
+  },
+  "csgo.weapon.bayonet.inspect": {
+    "sounds": [
+      "cookie_csg:bayonet/knife_push_lookat_start"
+    ]
+  },
+  "csgo.weapon.bayonet.slash": {
+    "sounds": [
+      "cookie_csg:bayonet/knife_slash1"
+    ]
+  },
+  "csgo.weapon.bayonet.stance": {
+    "sounds": [
+      "cookie_csg:bayonet/knife_slash2"
+    ]
+  },
+  "csgo.weapon.dryfire": {
+    "sounds": [
+      "cookie_csg:shared/dryfire"
+    ]
+  },
+  "csgo.weapon.fireselect": {
+    "sounds": [
+      "cookie_csg:shared/fireselect"
+    ]
+  },
+  "csgo.weapon.knife.backstab": {
+    "sounds": [
+      "cookie_csg:shared/knife_backstab"
+    ]
+  },
+  "csgo.weapon.p1911.boltpull": {
+    "sounds": [
+      "cookie_csg:p1911/m1911_reload_empty_chamber"
+    ]
+  },
+  "csgo.weapon.p1911.clipin": {
+    "sounds": [
+      "cookie_csg:p1911/m1911_reload_empty_magin"
+    ]
+  },
+  "csgo.weapon.p1911.clipout": {
+    "sounds": [
+      "cookie_csg:p1911/m1911_reload_empty_magout"
+    ]
+  },
+  "csgo.weapon.p1911.deploy": {
+    "sounds": [
+      "cookie_csg:p1911/m1911_draw"
+    ]
+  },
+  "csgo.weapon.p1911.inspect": {
+    "sounds": [
+      "cookie_csg:p1911/m1911_inspect_slide_pull"
+    ]
+  },
+  "csgo.weapon.p1911.shoot": {
+    "sounds": [
+      "cookie_csg:p1911/m1911_shoot"
+    ]
+  },
+  "item.shield.break": {
+    "sounds": [
+      "minecraft:item/shield/break"
+    ]
+  }
+}

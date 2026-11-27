@@ -34,6 +34,7 @@ public class WeaponAnimation {
     private int reloadIntroTicks;
     private int reloadLoopTicks;
     private int reloadEndTicks;
+    private String itemModelNamespace = "cookie_csg";
     private Map<Integer, String> frameModels;
     private transient final Map<Integer, String> resolvedKeyCache = new ConcurrentHashMap<>();
     private transient volatile String cachedKeyIdentity = "";
@@ -335,6 +336,48 @@ public class WeaponAnimation {
 
     public void setReloadEndTicks(int reloadEndTicks) {
         this.reloadEndTicks = Math.max(0, reloadEndTicks);
+    }
+
+    public String getItemModelNamespace() {
+        return itemModelNamespace;
+    }
+
+    public void setItemModelNamespace(String itemModelNamespace) {
+        if (itemModelNamespace == null || itemModelNamespace.isBlank()) {
+            this.itemModelNamespace = "cookie_csg";
+        } else {
+            this.itemModelNamespace = itemModelNamespace.trim();
+        }
+        invalidateKeyCache();
+    }
+
+    public boolean isItemModelDisabled() {
+        return itemModelNamespace == null
+            || itemModelNamespace.isBlank()
+            || "none".equalsIgnoreCase(itemModelNamespace)
+            || "vanilla".equalsIgnoreCase(itemModelNamespace);
+    }
+
+    public boolean hasCustomVisuals() {
+        if (idleModelData > 0 || deployModelData > 0 || adsModelData > 0 || adsFireModelData > 0) {
+            return true;
+        }
+        if (frameModels != null && !frameModels.isEmpty()) {
+            return true;
+        }
+        return (deployFrames != null && !deployFrames.isEmpty())
+            || (adsInFrames != null && !adsInFrames.isEmpty())
+            || (adsFireFrames != null && !adsFireFrames.isEmpty())
+            || (adsOutFrames != null && !adsOutFrames.isEmpty())
+            || (fireFrames != null && !fireFrames.isEmpty())
+            || (slash2Frames != null && !slash2Frames.isEmpty())
+            || (heavyFrames != null && !heavyFrames.isEmpty())
+            || (inspectFrames != null && !inspectFrames.isEmpty())
+            || (reloadFrames != null && !reloadFrames.isEmpty())
+            || (reloadTacticalFrames != null && !reloadTacticalFrames.isEmpty())
+            || (reloadIntroFrames != null && !reloadIntroFrames.isEmpty())
+            || (reloadLoopFrames != null && !reloadLoopFrames.isEmpty())
+            || (reloadEndFrames != null && !reloadEndFrames.isEmpty());
     }
 
     public Map<Integer, String> getFrameModels() {

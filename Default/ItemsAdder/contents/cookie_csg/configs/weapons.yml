@@ -1,0 +1,27 @@
+info:
+  namespace: cookie_csg
+items:
+  p1911:
+    display_name: '&6&lColt M1911 &7| Vanilla LOD'
+    permission: cookie_csg.p1911
+    resource:
+      material: IRON_HOE
+      generate: false
+      model_path: cookie_csg:item/p1911
+      model_id: 240100
+  bayonet:
+    display_name: '&b&lBayonet &7| Vanilla LOD'
+    permission: cookie_csg.bayonet
+    resource:
+      material: IRON_SWORD
+      generate: false
+      model_path: cookie_csg:item/bayonet
+      model_id: 240200
+categories:
+  cookie_csg:
+    enabled: true
+    icon: cookie_csg:p1911
+    name: '&6&lCookieCSG Default Vanilla LOD'
+    items:
+    - cookie_csg:p1911
+    - cookie_csg:bayonet

@@ -153,6 +153,16 @@ public class AnimationEngine {
         state.setLastRightClickMs(0L);
         state.setMeleeComboStep(0);
         state.interrupt();
+        if (weapon.isDefaultMode()) {
+            state.setCurrentState(WeaponState.IDLE);
+            if (weapon.getAudio() != null && weapon.getAudio().getDeploy() != null && !weapon.getAudio().getDeploy().isEmpty()) {
+                player.playSound(player.getLocation(), WeaponManager.resolveSoundKey(weapon.getAudio().getDeploy()), 1.0f, 1.0f);
+            }
+            if (targetItem != null && plugin != null && plugin.getWeaponManager() != null) {
+                plugin.getWeaponManager().applyWeaponVisual(targetItem, weapon, 0);
+            }
+            return;
+        }
         final long token = state.getActionToken();
         state.setCurrentState(WeaponState.DRAWING);
 
@@ -221,7 +231,7 @@ public class AnimationEngine {
     }
 
     public void startInspect(Player player, WeaponDefinition weapon) {
-        if (player == null || weapon == null) {
+        if (player == null || weapon == null || weapon.isDefaultMode()) {
             return;
         }
 
@@ -316,6 +326,9 @@ public class AnimationEngine {
         state.setAiming(aiming);
         WeaponState targetState = aiming ? WeaponState.AIMING_ADS : WeaponState.IDLE;
         state.setCurrentState(targetState);
+        if (weapon.isDefaultMode()) {
+            return;
+        }
         final long token = state.getActionToken();
 
         List<Integer> frames = aiming ? weapon.getAnimation().getAdsInFrames() : weapon.getAnimation().getAdsOutFrames();
@@ -362,7 +375,7 @@ public class AnimationEngine {
     }
 
     public void playFireAnimation(Player player, WeaponDefinition weapon, boolean isAds, boolean continuousShot) {
-        if (player == null || weapon == null) {
+        if (player == null || weapon == null || weapon.isDefaultMode()) {
             return;
         }
 
@@ -462,7 +475,7 @@ public class AnimationEngine {
         }
 
         WeaponAnimation anim = weapon.getAnimation();
-        if (anim != null && anim.getReloadLoopFrames() != null && !anim.getReloadLoopFrames().isEmpty()) {
+        if (!weapon.isDefaultMode() && anim != null && anim.getReloadLoopFrames() != null && !anim.getReloadLoopFrames().isEmpty()) {
             playShotgunLoopReload(player, weapon, state, token, anim, targetItem);
         } else {
             playLinearReload(player, weapon, state, token, anim, targetItem);
@@ -470,12 +483,14 @@ public class AnimationEngine {
     }
 
     private void playLinearReload(Player player, WeaponDefinition weapon, PlayerWeaponState state, long token, WeaponAnimation anim, ItemStack targetItem) {
-        List<Integer> tacticalFrames = anim != null ? anim.getReloadTacticalFrames() : List.of();
+        List<Integer> tacticalFrames = (!weapon.isDefaultMode() && anim != null) ? anim.getReloadTacticalFrames() : List.of();
         int currentAmmo = weapon.getStats() != null
             ? state.getAmmoInClip(weapon.getId(), weapon.getStats().getClipSize())
             : state.getAmmoInClip();
-        boolean useTactical = currentAmmo > 0 && tacticalFrames != null && !tacticalFrames.isEmpty();
-        List<Integer> reloadFrames = useTactical ? tacticalFrames : (anim != null ? anim.getReloadFrames() : List.of());
+        boolean useTactical = !weapon.isDefaultMode() && currentAmmo > 0 && tacticalFrames != null && !tacticalFrames.isEmpty();
+        List<Integer> reloadFrames = weapon.isDefaultMode()
+            ? List.of()
+            : (useTactical ? tacticalFrames : (anim != null ? anim.getReloadFrames() : List.of()));
         int tickRate = Math.max(1, anim != null ? anim.getReloadTickRate() : 1);
 
         int configuredTicks = useTactical ? weapon.getStats().getReloadTacticalTicks() : weapon.getStats().getReloadTicks();
@@ -674,7 +689,7 @@ public class AnimationEngine {
     }
 
     public void playMeleeAnimation(Player player, WeaponDefinition weapon, MeleeAttackType attackType) {
-        if (player == null || weapon == null || weapon.getAnimation() == null) {
+        if (player == null || weapon == null || weapon.isDefaultMode() || weapon.getAnimation() == null) {
             return;
         }
 
@@ -753,7 +768,7 @@ public class AnimationEngine {
     }
 
     public void restoreCurrentBaseModel(Player player, WeaponDefinition weapon) {
-        if (player == null || weapon == null || weapon.getAnimation() == null) {
+        if (player == null || weapon == null || weapon.isDefaultMode() || weapon.getAnimation() == null) {
             return;
         }
         PlayerWeaponState state = getState(player.getUniqueId());
@@ -767,7 +782,7 @@ public class AnimationEngine {
     }
 
     public void resetIdleModel(ItemStack item, WeaponDefinition weapon) {
-        if (weapon == null || weapon.getAnimation() == null) {
+        if (weapon == null || weapon.isDefaultMode() || weapon.getAnimation() == null) {
             return;
         }
         int idleModel = weapon.getAnimation().getIdleModelData();

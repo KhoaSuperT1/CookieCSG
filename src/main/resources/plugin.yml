@@ -1,5 +1,5 @@
 name: CookieCSG
-version: '1.0'
+version: '1.2'
 main: com.cookie.csg.CookieCSGPlugin
 api-version: '1.21'
 author: Java-Cookieee

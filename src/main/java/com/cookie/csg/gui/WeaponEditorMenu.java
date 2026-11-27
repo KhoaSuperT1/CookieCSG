@@ -1,11 +1,14 @@
 package com.cookie.csg.gui;
 
 import com.cookie.csg.CookieCSGPlugin;
+import com.cookie.csg.model.WeaponAnimation;
 import com.cookie.csg.model.WeaponDefinition;
+import com.cookie.csg.model.WeaponMode;
 import com.cookie.csg.model.WeaponType;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
+import org.bukkit.NamespacedKey;
 import org.bukkit.Sound;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.InventoryClickEvent;
@@ -53,7 +56,10 @@ public class WeaponEditorMenu implements InventoryHolder {
                     meta.setCustomModelData(weapon.getAnimation().getIdleModelData());
                 }
                 int fallbackCmd = weapon.getAnimation() != null ? weapon.getAnimation().getIdleModelData() : 0;
-                meta.setItemModel(plugin.getWeaponManager().resolveItemModel(weapon, fallbackCmd));
+                NamespacedKey resolvedModel = plugin.getWeaponManager().resolveItemModel(weapon, fallbackCmd);
+                if (resolvedModel != null) {
+                    meta.setItemModel(resolvedModel);
+                }
                 previewItem.setItemMeta(meta);
             }
         }
@@ -78,13 +84,27 @@ public class WeaponEditorMenu implements InventoryHolder {
             ChatColor.DARK_GRAY + "RIFLE, PISTOL, SNIPER, SHOTGUN, SMG, KNIFE, AXE"
         ));
 
-        inventory.setItem(21, createItem(
-            Material.ARMOR_STAND,
-            ChatColor.GOLD + "" + ChatColor.BOLD + "Animation Frames Editor",
-            ChatColor.GRAY + "Configure CustomModelData for states:",
-            ChatColor.GRAY + "Idle, Deploy, ADS, Fire, Inspect, Reload.",
+        boolean isDefaultMode = weapon.isDefaultMode();
+        inventory.setItem(20, createItem(
+            Material.COMPARATOR,
+            ChatColor.LIGHT_PURPLE + "" + ChatColor.BOLD + "Weapon Mode: " + weapon.getMode().getConfigValue().toUpperCase(),
+            ChatColor.GRAY + "DEFAULT: Pure weapon + zoom ADS (no inspect/animation)",
+            ChatColor.GRAY + "MODEL: Premium 3D frame animations + inspect",
             "",
-            ChatColor.YELLOW + "Click to open Animation Frames Menu"
+            ChatColor.YELLOW + "Click to toggle DEFAULT / MODEL"
+        ));
+
+        inventory.setItem(21, createItem(
+            isDefaultMode ? Material.BARRIER : Material.ARMOR_STAND,
+            (isDefaultMode ? ChatColor.GRAY : ChatColor.GOLD) + "" + ChatColor.BOLD + "Animation Frames Editor",
+            isDefaultMode
+                ? ChatColor.RED + "Disabled in DEFAULT mode"
+                : ChatColor.GRAY + "Configure CustomModelData for states:",
+            isDefaultMode
+                ? ChatColor.YELLOW + "Click Slot 20 to switch to MODEL mode"
+                : ChatColor.GRAY + "Idle, Deploy, ADS, Fire, Inspect, Reload.",
+            "",
+            isDefaultMode ? ChatColor.DARK_GRAY + "No animation section in YAML" : ChatColor.YELLOW + "Click to open Animation Frames Menu"
         ));
 
         inventory.setItem(23, createItem(
@@ -105,6 +125,23 @@ public class WeaponEditorMenu implements InventoryHolder {
             ChatColor.GRAY + "Spread Multiplier, Recoil Multiplier, Scope HUD.",
             "",
             ChatColor.YELLOW + "Click to open ADS Editor Menu"
+        ));
+
+        WeaponAnimation anim = weapon.getAnimation();
+        if (anim == null) {
+            anim = new WeaponAnimation();
+            weapon.setAnimation(anim);
+        }
+        String modeLabel = anim.isItemModelDisabled()
+            ? ChatColor.YELLOW + "NONE (Vanilla / CustomModelData Only)"
+            : ChatColor.AQUA + anim.getItemModelNamespace() + " (MC 1.21.4+ ItemModel)";
+        inventory.setItem(31, createItem(
+            Material.NAME_TAG,
+            ChatColor.AQUA + "" + ChatColor.BOLD + "Model Dispatch Mode",
+            ChatColor.GRAY + "Current mode: " + modeLabel,
+            ChatColor.GRAY + "Idle CMD: " + ChatColor.WHITE + anim.getIdleModelData(),
+            "",
+            ChatColor.YELLOW + "Click to toggle ItemModel vs Vanilla/CMD"
         ));
 
         inventory.setItem(45, createItem(
@@ -145,21 +182,28 @@ public class WeaponEditorMenu implements InventoryHolder {
         return item;
     }
 
-    public void handleQuickImport(InventoryClickEvent event) {
-        ItemStack cursor = event.getCursor();
-        if (cursor == null || cursor.getType().isAir()) {
+    private void applyQuickImportItem(ItemStack imported) {
+        if (imported == null || imported.getType().isAir()) {
             return;
         }
-
-        Material newMaterial = cursor.getType();
+        Material newMaterial = imported.getType();
         weapon.setMaterial(newMaterial);
 
+        ItemMeta meta = imported.hasItemMeta() ? imported.getItemMeta() : null;
         int customModel = 0;
-        if (cursor.hasItemMeta() && cursor.getItemMeta().hasCustomModelData()) {
-            customModel = cursor.getItemMeta().getCustomModelData();
+        if (meta != null && meta.hasCustomModelData()) {
+            customModel = meta.getCustomModelData();
         }
-        if (weapon.getAnimation() != null && customModel > 0) {
-            weapon.getAnimation().setIdleModelData(customModel);
+        WeaponAnimation anim = weapon.getAnimation();
+        if (anim != null) {
+            if (customModel > 0) {
+                anim.setIdleModelData(customModel);
+            } else if (meta == null || !meta.hasItemModel()) {
+                anim.setIdleModelData(0);
+            }
+            if (meta != null && meta.hasItemModel() && meta.getItemModel() != null) {
+                anim.setItemModelNamespace(meta.getItemModel().getNamespace());
+            }
         }
 
         player.playSound(player.getLocation(), Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 1.0f, 1.0f);
@@ -167,26 +211,12 @@ public class WeaponEditorMenu implements InventoryHolder {
         render();
     }
 
+    public void handleQuickImport(InventoryClickEvent event) {
+        applyQuickImportItem(event.getCursor());
+    }
+
     public void handleQuickImportDrag(InventoryDragEvent event) {
-        ItemStack dragged = event.getOldCursor();
-        if (dragged == null || dragged.getType().isAir()) {
-            return;
-        }
-
-        Material newMaterial = dragged.getType();
-        weapon.setMaterial(newMaterial);
-
-        int customModel = 0;
-        if (dragged.hasItemMeta() && dragged.getItemMeta().hasCustomModelData()) {
-            customModel = dragged.getItemMeta().getCustomModelData();
-        }
-        if (weapon.getAnimation() != null && customModel > 0) {
-            weapon.getAnimation().setIdleModelData(customModel);
-        }
-
-        player.playSound(player.getLocation(), Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 1.0f, 1.0f);
-        player.sendMessage(ChatColor.GREEN + "Quick Import succeeded: " + newMaterial.name() + " [ModelData: " + customModel + "]");
-        render();
+        applyQuickImportItem(event.getOldCursor());
     }
 
     public void handleClick(InventoryClickEvent event) {
@@ -213,7 +243,19 @@ public class WeaponEditorMenu implements InventoryHolder {
             return;
         }
 
+        if (rawSlot == 20) {
+            weapon.setMode(weapon.isDefaultMode() ? WeaponMode.MODEL : WeaponMode.DEFAULT);
+            player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 1.0f, 1.2f);
+            render();
+            return;
+        }
+
         if (rawSlot == 21) {
+            if (weapon.isDefaultMode()) {
+                player.playSound(player.getLocation(), Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f);
+                player.sendMessage(ChatColor.YELLOW + "Switch Weapon Mode (Slot 20) to MODEL to configure animations.");
+                return;
+            }
             player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 1.0f, 1.0f);
             plugin.getGuiManager().openFramesEditor(player, weapon);
             return;
@@ -228,6 +270,18 @@ public class WeaponEditorMenu implements InventoryHolder {
         if (rawSlot == 25) {
             player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 1.0f, 1.0f);
             plugin.getGuiManager().openAdsEditor(player, weapon);
+            return;
+        }
+
+        if (rawSlot == 31) {
+            WeaponAnimation anim = weapon.getAnimation();
+            if (anim == null) {
+                anim = new WeaponAnimation();
+                weapon.setAnimation(anim);
+            }
+            anim.setItemModelNamespace(anim.isItemModelDisabled() ? "cookie_csg" : "none");
+            player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 1.0f, 1.2f);
+            render();
             return;
         }
 
